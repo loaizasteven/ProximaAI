@@ -30,7 +30,8 @@ class ReasoningPlan(BaseModel):
 # Initialize the model
 model = init_chat_model(
     "anthropic:claude-3-7-sonnet-latest",
-    temperature=0
+    temperature=0,
+    max_tokens=4000
 )
 
 # Get all available tools from the registry
@@ -61,62 +62,31 @@ def create_orchestrator_agent():
         
         # Create reasoning prompt
         reasoning_prompt = f"""
-        You are the lead orchestrator for the VELOA multi-agent system. Analyze the following user request and create a detailed reasoning plan.
+        You are the lead orchestrator for the VELOA multi-agent system. Analyze the user request and create a reasoning plan.
 
-        USER REQUEST:
-        {user_message}
+        USER REQUEST: {user_message}
 
-        Your task is to:
-        1. Understand what the user wants
-        2. Break down the request into specific tasks
-        3. Determine what specialized agents need to be created
-        4. Plan the execution strategy
+        Create a detailed reasoning plan with:
+        1. Reasoning about what the user wants
+        2. A step-by-step execution plan with specialized agents
+        3. Each step must include: step number, task description, agent type, agent description, tools needed, and system prompt
 
-        IMPORTANT: Ensure your response is complete and includes ALL required fields for each step in the plan.
-        Each step must have: step, task, agent_type, agent_description, tools_needed, and system_prompt.
-        Do not truncate your response - make sure the JSON is complete.
-
-        Provide your reasoning and plan in the structured format defined by the Pydantic models.
+        Be concise but complete. Ensure all required fields are provided.
         """
         
-        # Use structured output with Pydantic
-        parser = PydanticOutputParser(pydantic_object=ReasoningPlan)
-        
         # Get reasoning from the model with structured output
-        response = model.invoke(reasoning_prompt + "\n\n" + parser.get_format_instructions())
+        structured_model = model.with_structured_output(ReasoningPlan)
+        reasoning_data = structured_model.invoke(reasoning_prompt)
         
         try:
-            content = response.content if hasattr(response, 'content') and isinstance(response.content, str) else str(response)
-            reasoning_data = parser.parse(content)
+            # With structured output, we get the Pydantic model directly
+            if not isinstance(reasoning_data, ReasoningPlan):
+                raise Exception("Expected ReasoningPlan but got different type")
         except Exception as e:
-            print(f"[ERROR] Failed to parse structured output: {e}")
+            print(f"[ERROR] Failed to get structured output: {e}")
             print("Raw response:")
-            print(response.content)
-            
-            # Try to fix incomplete JSON by adding missing fields
-            try:
-                # Extract the JSON part
-                json_match = re.search(r'\{.*\}', content, re.DOTALL)
-                if json_match:
-                    json_str = json_match.group(0)
-                    data = json.loads(json_str)
-                    
-                    # Fix incomplete plan items
-                    if 'plan' in data:
-                        for item in data['plan']:
-                            if 'tools_needed' not in item:
-                                item['tools_needed'] = []
-                            if 'system_prompt' not in item:
-                                item['system_prompt'] = f"You are a {item.get('agent_type', 'Specialized')} agent. {item.get('agent_description', '')}"
-                    
-                    # Parse the fixed data
-                    reasoning_data = ReasoningPlan(**data)
-                    print("[INFO] Successfully fixed incomplete JSON")
-                else:
-                    raise Exception("No JSON found in response")
-            except Exception as fallback_error:
-                print(f"[ERROR] Fallback parsing also failed: {fallback_error}")
-                raise
+            print(reasoning_data)
+            raise
         
         print("\n" + "="*80)
         print("🧠 ORCHESTRATOR REASONING")
