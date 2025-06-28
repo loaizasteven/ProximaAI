@@ -51,20 +51,53 @@ scripts/            # Dev scripts, data importers, etc.
 - Follows modern Python best practices for applications.
 - Scales well for research and production.
 
-## Quickstart
-1. **Clone the repo:**
+## Getting Started
+
+### Prerequisites
+- Python 3.10 or higher
+- [uv](https://docs.astral.sh/uv/) package manager
+
+### Installation
+
+1. **Clone the repository:**
    ```bash
    git clone https://github.com/yourusername/ProximaAI.git
    cd ProximaAI
    ```
-2. **Install dependencies:**
+
+2. **Install dependencies and set up development environment:**
    ```bash
-   pip install -e .
+   uv sync --dev
    ```
-3. **Run the app (placeholder):**
+   This command will:
+   - Install all project dependencies
+   - Install the package in development mode
+   - Set up the virtual environment
+
+3. **Activate the virtual environment (if needed):**
    ```bash
-   python -m src.proximaai.interface.cli
+   source .venv/bin/activate  # On macOS/Linux
+   # or
+   .venv\Scripts\activate     # On Windows
    ```
+
+### Running the Application
+
+1. **Run the main agent:**
+   ```bash
+   python src/proximaai/orchestrator/main_agent.py
+   ```
+
+2. **Run tests:**
+   ```bash
+   uv run pytest
+   ```
+
+### Development Workflow
+
+- **Adding new dependencies:** Update `pyproject.toml` and run `uv sync --dev`
+- **Running scripts:** Use `uv run python script.py` or activate the venv first
+- **Package imports:** The package is installed in development mode, so you can import `proximaai` from anywhere
 
 ## Next Steps
 - Implement agent classes in `src/proximaai/agents/`
