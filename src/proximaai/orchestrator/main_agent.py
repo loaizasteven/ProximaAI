@@ -14,6 +14,8 @@ from proximaai.prebuilt.prompt_templates import PromptTemplates
 from proximaai.tools.tool_registry import ToolRegistry
 from proximaai.tools.agent_builder import AgentBuilder
 
+from proximaai.prebuilt.prompt_templates import PromptTemplates
+
 # Pydantic models for structured output
 class AgentPlan(BaseModel):
     step: int = Field(description="Step number in the execution plan")
@@ -61,18 +63,7 @@ def create_orchestrator_agent():
         user_message = messages[-1]["content"] if messages else ""
         
         # Create reasoning prompt
-        reasoning_prompt = f"""
-        You are the lead orchestrator for the VELOA multi-agent system. Analyze the user request and create a reasoning plan.
-
-        USER REQUEST: {user_message}
-
-        Create a detailed reasoning plan with:
-        1. Reasoning about what the user wants
-        2. A step-by-step execution plan with specialized agents
-        3. Each step must include: step number, task description, agent type, agent description, tools needed, and system prompt
-
-        Be concise but complete. Ensure all required fields are provided.
-        """
+        reasoning_prompt = PromptTemplates('LEAD_AGENT', user_message=user_message)
         
         # Get reasoning from the model with structured output
         structured_model = model.with_structured_output(ReasoningPlan)
