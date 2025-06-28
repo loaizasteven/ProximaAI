@@ -25,6 +25,8 @@ class PromptTemplates:
             return cls._templates[template_name].render(**kwargs, general_agent_prompt=general_agent_prompt).strip()
         except KeyError:
             return f"Template {template_name} not found"
-            
-# Example usage:
-print(PromptTemplates('LEAD_AGENT'))
+
+
+if __name__ == "__main__":
+    # Example usage:
+    print(PromptTemplates('LEAD_AGENT'))
