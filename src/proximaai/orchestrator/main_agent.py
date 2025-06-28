@@ -170,10 +170,17 @@ def create_orchestrator_agent():
             result = agent_builder._run(json.dumps(agent_spec))
             print(f"  Created {step['agent_type']}: {result}")
             
+            # Extract agent ID properly
+            agent_id = None
+            if "ID: " in result:
+                id_part = result.split("ID: ")[-1]
+                # Extract just the ID part (before the closing parenthesis)
+                agent_id = id_part.split(")")[0] if ")" in id_part else id_part.split()[0]
+            
             created_agents.append({
                 "step": step["step"],
                 "agent_spec": agent_spec,
-                "agent_id": result.split("ID: ")[-1] if "ID: " in result else None
+                "agent_id": agent_id
             })
         
         print("="*80)
@@ -192,15 +199,19 @@ def create_orchestrator_agent():
         
         print("\n🚀 EXECUTING AGENT TASKS")
         print("="*80)
+        print(f"Number of agents to execute: {len(created_agents)}")
         
         # Execute each agent's task
         for agent_info in created_agents:
             agent_id = agent_info["agent_id"]
+            print(f"Processing agent ID: {agent_id}")
+            
             if agent_id and agent_id in agent_builder.created_agents:
                 agent = agent_builder.created_agents[agent_id]["agent"]
                 agent_spec = agent_info["agent_spec"]
                 
                 print(f"  Executing {agent_spec['name']}...")
+                print(f"    Tools: {agent_spec['tools']}")
                 
                 # Create task-specific prompt
                 task_prompt = f"""
@@ -211,19 +222,33 @@ def create_orchestrator_agent():
                 Please execute your specialized task and provide a detailed response.
                 """
                 
+                print(f"    Task prompt length: {len(task_prompt)} characters")
+                
                 # Execute the agent
                 try:
+                    print("    Invoking agent...")
                     response = agent.invoke({
                         "messages": [{"role": "user", "content": task_prompt}]
                     })
                     
+                    print(f"    Agent response type: {type(response)}")
+                    print(f"    Agent response keys: {response.keys() if isinstance(response, dict) else 'Not a dict'}")
+                    
                     # Extract the response
                     messages = response.get('messages', [])
+                    print(f"    Number of messages: {len(messages)}")
+                    
                     agent_response = ""
-                    for message in reversed(messages):
+                    for i, message in enumerate(reversed(messages)):
+                        print(f"    Message {i}: type={type(message)}, has_content={hasattr(message, 'content')}")
                         if hasattr(message, 'content') and isinstance(message.content, str):
                             agent_response = message.content
+                            print(f"    Found response: {len(agent_response)} characters")
                             break
+                    
+                    if not agent_response:
+                        agent_response = "No response content found"
+                        print("    ⚠️ No response content found")
                     
                     agent_results[agent_spec['name']] = {
                         "response": agent_response,
@@ -233,12 +258,20 @@ def create_orchestrator_agent():
                     print(f"    ✅ {agent_spec['name']} completed")
                     
                 except Exception as e:
+                    print(f"    ❌ Exception: {str(e)}")
                     agent_results[agent_spec['name']] = {
                         "response": f"Error: {str(e)}",
                         "status": "failed"
                     }
                     print(f"    ❌ {agent_spec['name']} failed: {str(e)}")
+            else:
+                print(f"  ⚠️ Agent ID {agent_id} not found in created agents")
+                agent_results[f"agent_{agent_id}"] = {
+                    "response": "Agent not found",
+                    "status": "failed"
+                }
         
+        print(f"Total agent results: {len(agent_results)}")
         print("="*80)
         
         return {
