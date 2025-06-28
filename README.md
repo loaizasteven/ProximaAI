@@ -27,7 +27,8 @@ graph TD;
 ```
 ### How we design our Multi Agent System
 
-<iframe style="border: 1px solid rgba(0, 0, 0, 0.1);" width="800" height="450" src="https://embed.figma.com/design/lGVksTNnjkbYTdtO1gKruE/Multi-Agent-Research?node-id=5-2&embed-host=share" allowfullscreen></iframe>
+![ProximaAI Multi-Agent Job Search System Architecture](./static/ProximaAI%20Multi%20Agent%20Job%20Search%20System-%20VELOA.svg)
+
 
 ## Directory Structure
 ```plaintext
