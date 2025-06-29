@@ -10,27 +10,19 @@ import re
 from pydantic import BaseModel, Field
 from langchain.output_parsers import PydanticOutputParser
 
+from proximaai.utils.structured_output import ReasoningPlan, AgentPlan, OrchestratorState
 from proximaai.prebuilt.prompt_templates import PromptTemplates
 from proximaai.tools.tool_registry import ToolRegistry
 from proximaai.tools.agent_builder import AgentBuilder
 
-# Pydantic models for structured output
-class AgentPlan(BaseModel):
-    step: int = Field(description="Step number in the execution plan")
-    task: str = Field(description="Description of the task to be performed")
-    agent_type: str = Field(description="Type of agent needed for this task")
-    agent_description: str = Field(description="What this agent will do")
-    tools_needed: List[str] = Field(description="List of tool names needed for this agent", default_factory=list)
-    system_prompt: str = Field(description="Specialized system prompt for this agent", default="")
+from proximaai.prebuilt.prompt_templates import PromptTemplates
 
-class ReasoningPlan(BaseModel):
-    reasoning: str = Field(description="Detailed reasoning about what needs to be done")
-    plan: List[AgentPlan] = Field(description="List of steps in the execution plan")
 
 # Initialize the model
 model = init_chat_model(
     "anthropic:claude-3-7-sonnet-latest",
-    temperature=0
+    temperature=0,
+    max_tokens=4000
 )
 
 # Get all available tools from the registry
@@ -41,16 +33,6 @@ tools = tool_registry.get_all_tools()
 agent_builder = AgentBuilder({tool.name: tool for tool in tools})
 tools.append(agent_builder)
 
-# State definition for the orchestrator
-class OrchestratorState(TypedDict):
-    messages: List[Dict[str, Any]]
-    reasoning: str
-    plan: List[Dict[str, Any]]
-    created_agents: List[Dict[str, Any]]
-    agent_results: Dict[str, Any]
-    final_response: str
-    current_step: str
-
 def create_orchestrator_agent():
     """Create the main orchestrator agent with reasoning and planning capabilities."""
     
@@ -60,63 +42,21 @@ def create_orchestrator_agent():
         user_message = messages[-1]["content"] if messages else ""
         
         # Create reasoning prompt
-        reasoning_prompt = f"""
-        You are the lead orchestrator for the VELOA multi-agent system. Analyze the following user request and create a detailed reasoning plan.
-
-        USER REQUEST:
-        {user_message}
-
-        Your task is to:
-        1. Understand what the user wants
-        2. Break down the request into specific tasks
-        3. Determine what specialized agents need to be created
-        4. Plan the execution strategy
-
-        IMPORTANT: Ensure your response is complete and includes ALL required fields for each step in the plan.
-        Each step must have: step, task, agent_type, agent_description, tools_needed, and system_prompt.
-        Do not truncate your response - make sure the JSON is complete.
-
-        Provide your reasoning and plan in the structured format defined by the Pydantic models.
-        """
-        
-        # Use structured output with Pydantic
-        parser = PydanticOutputParser(pydantic_object=ReasoningPlan)
+        reasoning_prompt = PromptTemplates('LEAD_AGENT', user_message=user_message)
         
         # Get reasoning from the model with structured output
-        response = model.invoke(reasoning_prompt + "\n\n" + parser.get_format_instructions())
+        structured_model = model.with_structured_output(ReasoningPlan)
+        reasoning_data = structured_model.invoke(reasoning_prompt)
         
         try:
-            content = response.content if hasattr(response, 'content') and isinstance(response.content, str) else str(response)
-            reasoning_data = parser.parse(content)
+            # With structured output, we get the Pydantic model directly
+            if not isinstance(reasoning_data, ReasoningPlan):
+                raise Exception("Expected ReasoningPlan but got different type")
         except Exception as e:
-            print(f"[ERROR] Failed to parse structured output: {e}")
+            print(f"[ERROR] Failed to get structured output: {e}")
             print("Raw response:")
-            print(response.content)
-            
-            # Try to fix incomplete JSON by adding missing fields
-            try:
-                # Extract the JSON part
-                json_match = re.search(r'\{.*\}', content, re.DOTALL)
-                if json_match:
-                    json_str = json_match.group(0)
-                    data = json.loads(json_str)
-                    
-                    # Fix incomplete plan items
-                    if 'plan' in data:
-                        for item in data['plan']:
-                            if 'tools_needed' not in item:
-                                item['tools_needed'] = []
-                            if 'system_prompt' not in item:
-                                item['system_prompt'] = f"You are a {item.get('agent_type', 'Specialized')} agent. {item.get('agent_description', '')}"
-                    
-                    # Parse the fixed data
-                    reasoning_data = ReasoningPlan(**data)
-                    print("[INFO] Successfully fixed incomplete JSON")
-                else:
-                    raise Exception("No JSON found in response")
-            except Exception as fallback_error:
-                print(f"[ERROR] Fallback parsing also failed: {fallback_error}")
-                raise
+            print(reasoning_data)
+            raise
         
         print("\n" + "="*80)
         print("🧠 ORCHESTRATOR REASONING")
@@ -170,10 +110,17 @@ def create_orchestrator_agent():
             result = agent_builder._run(json.dumps(agent_spec))
             print(f"  Created {step['agent_type']}: {result}")
             
+            # Extract agent ID properly
+            agent_id = None
+            if "ID: " in result:
+                id_part = result.split("ID: ")[-1]
+                # Extract just the ID part (before the closing parenthesis)
+                agent_id = id_part.split(")")[0] if ")" in id_part else id_part.split()[0]
+            
             created_agents.append({
                 "step": step["step"],
                 "agent_spec": agent_spec,
-                "agent_id": result.split("ID: ")[-1] if "ID: " in result else None
+                "agent_id": agent_id
             })
         
         print("="*80)
@@ -192,15 +139,19 @@ def create_orchestrator_agent():
         
         print("\n🚀 EXECUTING AGENT TASKS")
         print("="*80)
+        print(f"Number of agents to execute: {len(created_agents)}")
         
         # Execute each agent's task
         for agent_info in created_agents:
             agent_id = agent_info["agent_id"]
+            print(f"Processing agent ID: {agent_id}")
+            
             if agent_id and agent_id in agent_builder.created_agents:
                 agent = agent_builder.created_agents[agent_id]["agent"]
                 agent_spec = agent_info["agent_spec"]
                 
                 print(f"  Executing {agent_spec['name']}...")
+                print(f"    Tools: {agent_spec['tools']}")
                 
                 # Create task-specific prompt
                 task_prompt = f"""
@@ -211,19 +162,33 @@ def create_orchestrator_agent():
                 Please execute your specialized task and provide a detailed response.
                 """
                 
+                print(f"    Task prompt length: {len(task_prompt)} characters")
+                
                 # Execute the agent
                 try:
+                    print("    Invoking agent...")
                     response = agent.invoke({
                         "messages": [{"role": "user", "content": task_prompt}]
                     })
                     
+                    print(f"    Agent response type: {type(response)}")
+                    print(f"    Agent response keys: {response.keys() if isinstance(response, dict) else 'Not a dict'}")
+                    
                     # Extract the response
                     messages = response.get('messages', [])
+                    print(f"    Number of messages: {len(messages)}")
+                    
                     agent_response = ""
-                    for message in reversed(messages):
+                    for i, message in enumerate(reversed(messages)):
+                        print(f"    Message {i}: type={type(message)}, has_content={hasattr(message, 'content')}")
                         if hasattr(message, 'content') and isinstance(message.content, str):
                             agent_response = message.content
+                            print(f"    Found response: {len(agent_response)} characters")
                             break
+                    
+                    if not agent_response:
+                        agent_response = "No response content found"
+                        print("    ⚠️ No response content found")
                     
                     agent_results[agent_spec['name']] = {
                         "response": agent_response,
@@ -233,12 +198,20 @@ def create_orchestrator_agent():
                     print(f"    ✅ {agent_spec['name']} completed")
                     
                 except Exception as e:
+                    print(f"    ❌ Exception: {str(e)}")
                     agent_results[agent_spec['name']] = {
                         "response": f"Error: {str(e)}",
                         "status": "failed"
                     }
                     print(f"    ❌ {agent_spec['name']} failed: {str(e)}")
+            else:
+                print(f"  ⚠️ Agent ID {agent_id} not found in created agents")
+                agent_results[f"agent_{agent_id}"] = {
+                    "response": "Agent not found",
+                    "status": "failed"
+                }
         
+        print(f"Total agent results: {len(agent_results)}")
         print("="*80)
         
         return {
@@ -361,3 +334,4 @@ if __name__ == "__main__":
     
     response = orchestrator.invoke(conversation)
     format_response(response)
+    

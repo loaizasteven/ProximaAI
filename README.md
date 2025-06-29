@@ -2,6 +2,7 @@
 
 ProximaAI is an AI-powered job search and resume assistant inspired by Anthropic's multi-agent research system. It leverages multi-agent technology and the Lang ecosystem to accelerate your career journey.
 
+
 ## Project Vision
 - **AI-powered job search**: Automate job discovery, matching, and application.
 - **Resume assistant**: Optimize and tailor your resume for each opportunity.
@@ -24,6 +25,10 @@ graph TD;
   AGENTS -->|"Store/Retrieve"| DATA["Data & Evaluation"]
   ORCH -->|"Coordinates"| AGENTS
 ```
+### How we design our Multi Agent System
+
+![ProximaAI Multi-Agent Job Search System Architecture](./static/ProximaAI%20Multi%20Agent%20Job%20Search%20System-%20VELOA.svg)
+
 
 ## Directory Structure
 ```plaintext
