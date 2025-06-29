@@ -1,6 +1,9 @@
 from jinja2 import Template
 from pathlib import Path
 import os
+from proximaai.utils.logger import get_logger
+
+logger = get_logger("prompt_templates")
 
 class PromptTemplates:
     _template_dir = Path(__file__).parent / 'templates'
@@ -17,7 +20,7 @@ class PromptTemplates:
                 with open(os.path.join(_template_dir, filename), 'r') as f:
                     _templates[template_name] = Template(f.read())
             except Exception as e:
-                print(f"Error loading template '{filename}': {e}")
+                logger.error(f"Error loading template '{filename}'", error=str(e))
 
     def __new__(cls, template_name: str, **kwargs):
         try:
@@ -29,4 +32,4 @@ class PromptTemplates:
 
 if __name__ == "__main__":
     # Example usage:
-    print(PromptTemplates('LEAD_AGENT'))
+    logger.info("Example template usage", template=PromptTemplates('LEAD_AGENT'))
