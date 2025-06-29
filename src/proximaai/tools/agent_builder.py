@@ -9,6 +9,9 @@ from langgraph.prebuilt import create_react_agent
 from langchain.tools import BaseTool
 import json
 import uuid
+from proximaai.utils.logger import get_logger
+
+logger = get_logger("agent_builder")
 
 
 @dataclass
@@ -44,6 +47,7 @@ class AgentBuilder(BaseTool):
         # Store instance variables in a way that doesn't conflict with Pydantic
         self._tool_registry = tool_registry
         self._created_agents: Dict[str, Any] = {}
+        logger.info("AgentBuilder initialized", available_tools=len(tool_registry))
     
     @property
     def tool_registry(self) -> Dict[str, BaseTool]:
@@ -58,19 +62,33 @@ class AgentBuilder(BaseTool):
     def _run(self, agent_spec_json: str) -> str:
         """Create a new agent based on the specification."""
         try:
+            logger.debug("Creating new agent", spec_json=agent_spec_json)
             spec_data = json.loads(agent_spec_json)
             spec = AgentSpec(**spec_data)
             
+            logger.info("Agent specification parsed", 
+                       agent_name=spec.name, 
+                       requested_tools=spec.tools,
+                       model=spec.model)
+            
             # Get the specified tools from registry
             agent_tools = []
+            missing_tools = []
             for tool_name in spec.tools:
                 if tool_name in self._tool_registry:
                     agent_tools.append(self._tool_registry[tool_name])
                 else:
-                    return f"Error: Tool '{tool_name}' not found in registry"
+                    missing_tools.append(tool_name)
+            
+            if missing_tools:
+                logger.error("Missing tools in registry", missing_tools=missing_tools)
+                return f"Error: Tools not found in registry: {', '.join(missing_tools)}"
+            
+            logger.debug("Tools retrieved successfully", tool_count=len(agent_tools))
             
             # Initialize the model
             model = init_chat_model(spec.model, temperature=spec.temperature)
+            logger.debug("Model initialized", model=spec.model, temperature=spec.temperature)
             
             # Create the agent
             agent = create_react_agent(
@@ -87,20 +105,32 @@ class AgentBuilder(BaseTool):
                 "tools": agent_tools
             }
             
+            logger.info("Agent created successfully", 
+                       agent_name=spec.name, 
+                       agent_id=agent_id, 
+                       tool_count=len(agent_tools))
+            
             return f"Successfully created agent '{spec.name}' (ID: {agent_id}) with {len(agent_tools)} tools"
             
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
+            logger.error("Invalid JSON specification", error=str(e))
             return "Error: Invalid JSON specification"
         except Exception as e:
+            logger.exception("Error creating agent", error=str(e))
             return f"Error creating agent: {str(e)}"
     
     def get_agent(self, agent_id: str) -> Optional[Any]:
         """Retrieve a created agent by ID."""
-        return self._created_agents.get(agent_id)
+        agent = self._created_agents.get(agent_id)
+        if agent:
+            logger.debug("Agent retrieved", agent_id=agent_id)
+        else:
+            logger.warning("Agent not found", agent_id=agent_id)
+        return agent
     
     def list_agents(self) -> List[Dict[str, Any]]:
         """List all created agents."""
-        return [
+        agents = [
             {
                 "id": agent_id,
                 "name": data["spec"].name,
@@ -108,4 +138,6 @@ class AgentBuilder(BaseTool):
                 "tools": [tool.name for tool in data["tools"]]
             }
             for agent_id, data in self._created_agents.items()
-        ] 
+        ]
+        logger.info("Agents listed", agent_count=len(agents))
+        return agents 

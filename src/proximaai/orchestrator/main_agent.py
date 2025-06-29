@@ -9,14 +9,18 @@ from datetime import datetime
 import re
 from pydantic import BaseModel, Field
 from langchain.output_parsers import PydanticOutputParser
+import time
 
 from proximaai.utils.structured_output import ReasoningPlan, AgentPlan, OrchestratorState
 from proximaai.prebuilt.prompt_templates import PromptTemplates
 from proximaai.tools.tool_registry import ToolRegistry
 from proximaai.tools.agent_builder import AgentBuilder
+from proximaai.utils.logger import get_logger, setup_logging
 
 from proximaai.prebuilt.prompt_templates import PromptTemplates
 
+# Setup logging
+logger = setup_logging(level="INFO")
 
 # Initialize the model
 model = init_chat_model(
@@ -38,6 +42,9 @@ def create_orchestrator_agent():
     
     def analyze_request(state: OrchestratorState) -> OrchestratorState:
         """Analyze the user request and create a reasoning plan."""
+        start_time = time.time()
+        logger.log_step("analyze_request", {"user_message_length": len(state["messages"][-1]["content"]) if state["messages"] else 0})
+        
         messages = state["messages"]
         user_message = messages[-1]["content"] if messages else ""
         
@@ -53,21 +60,18 @@ def create_orchestrator_agent():
             if not isinstance(reasoning_data, ReasoningPlan):
                 raise Exception("Expected ReasoningPlan but got different type")
         except Exception as e:
-            print(f"[ERROR] Failed to get structured output: {e}")
-            print("Raw response:")
-            print(reasoning_data)
+            logger.error("Failed to get structured output", error=str(e), raw_response=str(reasoning_data))
             raise
         
-        print("\n" + "="*80)
-        print("🧠 ORCHESTRATOR REASONING")
-        print("="*80)
-        print(reasoning_data.reasoning)
-        print("\n📋 EXECUTION PLAN:")
+        logger.info("🧠 ORCHESTRATOR REASONING", reasoning=reasoning_data.reasoning)
+        logger.info("📋 EXECUTION PLAN")
         for step in reasoning_data.plan:
-            print(f"  Step {step.step}: {step.task}")
-            print(f"    Agent: {step.agent_type}")
-            print(f"    Tools: {', '.join(step.tools_needed)}")
-        print("="*80)
+            logger.info(f"  Step {step.step}: {step.task}", 
+                       agent_type=step.agent_type, 
+                       tools_needed=step.tools_needed)
+        
+        duration = time.time() - start_time
+        logger.log_performance("analyze_request", duration, plan_steps=len(reasoning_data.plan))
         
         return {
             **state,
@@ -78,15 +82,17 @@ def create_orchestrator_agent():
     
     def create_specialized_agents(state: OrchestratorState) -> OrchestratorState:
         """Create specialized agents based on the plan."""
+        start_time = time.time()
+        logger.log_step("create_specialized_agents", {"plan_steps": len(state["plan"])})
+        
         plan = state["plan"]
         created_agents = []
         
-        print("\n🔧 CREATING SPECIALIZED AGENTS")
-        print("="*80)
+        logger.info("🔧 CREATING SPECIALIZED AGENTS")
         
         # Get available tool names
         available_tools = [tool.name for tool in tools]
-        print(f"Available tools: {', '.join(available_tools)}")
+        logger.info("Available tools", tools=available_tools)
         
         for step in plan:
             agent_spec = {
@@ -103,12 +109,15 @@ def create_orchestrator_agent():
             if not available_tool_names:
                 # Use default tools if none of the requested tools are available
                 available_tool_names = ["web_search", "resume_optimizer"]
+                logger.warning(f"No requested tools available for {step['agent_type']}, using defaults", 
+                             requested_tools=step["tools_needed"], 
+                             default_tools=available_tool_names)
             
             agent_spec["tools"] = available_tool_names
             
             # Create the agent using the agent builder
             result = agent_builder._run(json.dumps(agent_spec))
-            print(f"  Created {step['agent_type']}: {result}")
+            logger.info(f"Created {step['agent_type']}", result=result)
             
             # Extract agent ID properly
             agent_id = None
@@ -122,8 +131,11 @@ def create_orchestrator_agent():
                 "agent_spec": agent_spec,
                 "agent_id": agent_id
             })
+            
+            logger.log_agent_creation(step['agent_type'], agent_id or "unknown", available_tool_names)
         
-        print("="*80)
+        duration = time.time() - start_time
+        logger.log_performance("create_specialized_agents", duration, agents_created=len(created_agents))
         
         return {
             **state,
@@ -133,25 +145,26 @@ def create_orchestrator_agent():
     
     def execute_agent_tasks(state: OrchestratorState) -> OrchestratorState:
         """Execute tasks with the created agents in parallel."""
+        start_time = time.time()
+        logger.log_step("execute_agent_tasks", {"agents_count": len(state["created_agents"])})
+        
         created_agents = state["created_agents"]
         user_message = state["messages"][-1]["content"] if state["messages"] else ""
         agent_results = {}
         
-        print("\n🚀 EXECUTING AGENT TASKS")
-        print("="*80)
-        print(f"Number of agents to execute: {len(created_agents)}")
+        logger.info("🚀 EXECUTING AGENT TASKS", number_of_agents=len(created_agents))
         
         # Execute each agent's task
         for agent_info in created_agents:
+            agent_start_time = time.time()
             agent_id = agent_info["agent_id"]
-            print(f"Processing agent ID: {agent_id}")
+            logger.info("Processing agent", agent_id=agent_id)
             
             if agent_id and agent_id in agent_builder.created_agents:
                 agent = agent_builder.created_agents[agent_id]["agent"]
                 agent_spec = agent_info["agent_spec"]
                 
-                print(f"  Executing {agent_spec['name']}...")
-                print(f"    Tools: {agent_spec['tools']}")
+                logger.info(f"Executing {agent_spec['name']}", tools=agent_spec['tools'])
                 
                 # Create task-specific prompt
                 task_prompt = f"""
@@ -162,57 +175,66 @@ def create_orchestrator_agent():
                 Please execute your specialized task and provide a detailed response.
                 """
                 
-                print(f"    Task prompt length: {len(task_prompt)} characters")
+                logger.debug("Task prompt created", prompt_length=len(task_prompt))
                 
                 # Execute the agent
                 try:
-                    print("    Invoking agent...")
+                    logger.debug("Invoking agent")
                     response = agent.invoke({
                         "messages": [{"role": "user", "content": task_prompt}]
                     })
                     
-                    print(f"    Agent response type: {type(response)}")
-                    print(f"    Agent response keys: {response.keys() if isinstance(response, dict) else 'Not a dict'}")
+                    logger.debug("Agent response received", 
+                               response_type=type(response).__name__,
+                               response_keys=list(response.keys()) if isinstance(response, dict) else "Not a dict")
                     
                     # Extract the response
                     messages = response.get('messages', [])
-                    print(f"    Number of messages: {len(messages)}")
+                    logger.debug("Processing messages", message_count=len(messages))
                     
                     agent_response = ""
                     for i, message in enumerate(reversed(messages)):
-                        print(f"    Message {i}: type={type(message)}, has_content={hasattr(message, 'content')}")
+                        logger.debug(f"Processing message {i}", 
+                                   message_type=type(message).__name__,
+                                   has_content=hasattr(message, 'content'))
                         if hasattr(message, 'content') and isinstance(message.content, str):
                             agent_response = message.content
-                            print(f"    Found response: {len(agent_response)} characters")
+                            logger.debug("Found response", response_length=len(agent_response))
                             break
                     
                     if not agent_response:
                         agent_response = "No response content found"
-                        print("    ⚠️ No response content found")
+                        logger.warning("No response content found")
                     
                     agent_results[agent_spec['name']] = {
                         "response": agent_response,
                         "status": "completed"
                     }
                     
-                    print(f"    ✅ {agent_spec['name']} completed")
+                    agent_duration = time.time() - agent_start_time
+                    logger.log_agent_execution(agent_spec['name'], "completed", agent_duration)
                     
                 except Exception as e:
-                    print(f"    ❌ Exception: {str(e)}")
+                    agent_duration = time.time() - agent_start_time
+                    logger.exception(f"Agent execution failed: {agent_spec['name']}", 
+                                   agent_name=agent_spec['name'], 
+                                   error=str(e))
                     agent_results[agent_spec['name']] = {
                         "response": f"Error: {str(e)}",
                         "status": "failed"
                     }
-                    print(f"    ❌ {agent_spec['name']} failed: {str(e)}")
+                    logger.log_agent_execution(agent_spec['name'], "failed", agent_duration)
             else:
-                print(f"  ⚠️ Agent ID {agent_id} not found in created agents")
+                logger.warning("Agent not found in created agents", agent_id=agent_id)
                 agent_results[f"agent_{agent_id}"] = {
                     "response": "Agent not found",
                     "status": "failed"
                 }
         
-        print(f"Total agent results: {len(agent_results)}")
-        print("="*80)
+        duration = time.time() - start_time
+        logger.log_performance("execute_agent_tasks", duration, 
+                             total_results=len(agent_results),
+                             successful_results=len([r for r in agent_results.values() if r["status"] == "completed"]))
         
         return {
             **state,
@@ -222,6 +244,9 @@ def create_orchestrator_agent():
     
     def synthesize_final_response(state: OrchestratorState) -> OrchestratorState:
         """Synthesize responses from all agents into a final response."""
+        start_time = time.time()
+        logger.log_step("synthesize_final_response", {"agent_results_count": len(state["agent_results"])})
+        
         agent_results = state["agent_results"]
         user_message = state["messages"][-1]["content"] if state["messages"] else ""
         reasoning = state["reasoning"]
@@ -252,11 +277,10 @@ def create_orchestrator_agent():
         response = model.invoke(synthesis_prompt)
         final_response = response.content if hasattr(response, 'content') and isinstance(response.content, str) else str(response)
         
-        print("\n" + "="*80)
-        print("🤖 FINAL SYNTHESIZED RESPONSE")
-        print("="*80)
-        print(final_response)
-        print("="*80)
+        logger.info("🤖 FINAL SYNTHESIZED RESPONSE", response_length=len(final_response))
+        
+        duration = time.time() - start_time
+        logger.log_performance("synthesize_final_response", duration, response_length=len(final_response))
         
         return {
             **state,
@@ -287,19 +311,15 @@ orchestrator = create_orchestrator_agent()
 
 def format_response(response):
     """Format the orchestrator response for better readability."""
-    print("\n" + "="*80)
-    print("🎯 ORCHESTRATOR SUMMARY")
-    print("="*80)
+    logger.info("🎯 ORCHESTRATOR SUMMARY")
     
     if "final_response" in response:
-        print("✅ Task completed successfully!")
-        print(f"📊 Agents created: {len(response.get('created_agents', []))}")
-        print(f"📈 Tasks executed: {len(response.get('agent_results', {}))}")
+        logger.info("✅ Task completed successfully!", 
+                   agents_created=len(response.get('created_agents', [])),
+                   tasks_executed=len(response.get('agent_results', {})))
     else:
-        print("❌ Task did not complete successfully")
-        print(f"Current step: {response.get('current_step', 'unknown')}")
-    
-    print("="*80)
+        logger.error("❌ Task did not complete successfully", 
+                    current_step=response.get('current_step', 'unknown'))
 
 if __name__ == "__main__":
     conversation = {
@@ -328,9 +348,8 @@ if __name__ == "__main__":
         "current_step": "start"
     }
     
-    print("🚀 Starting ProximaAI Multi-Agent Orchestrator...")
-    print("📝 User Request: Resume analysis and job application optimization")
-    print("-" * 50)
+    logger.info("🚀 Starting ProximaAI Multi-Agent Orchestrator...")
+    logger.info("📝 User Request: Resume analysis and job application optimization")
     
     response = orchestrator.invoke(conversation)
     format_response(response)
