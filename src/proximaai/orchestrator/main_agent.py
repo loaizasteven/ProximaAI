@@ -10,24 +10,13 @@ import re
 from pydantic import BaseModel, Field
 from langchain.output_parsers import PydanticOutputParser
 
+from proximaai.utils.structured_output import ReasoningPlan, AgentPlan, OrchestratorState
 from proximaai.prebuilt.prompt_templates import PromptTemplates
 from proximaai.tools.tool_registry import ToolRegistry
 from proximaai.tools.agent_builder import AgentBuilder
 
 from proximaai.prebuilt.prompt_templates import PromptTemplates
 
-# Pydantic models for structured output
-class AgentPlan(BaseModel):
-    step: int = Field(description="Step number in the execution plan")
-    task: str = Field(description="Description of the task to be performed")
-    agent_type: str = Field(description="Type of agent needed for this task")
-    agent_description: str = Field(description="What this agent will do")
-    tools_needed: List[str] = Field(description="List of tool names needed for this agent", default_factory=list)
-    system_prompt: str = Field(description="Specialized system prompt for this agent", default="")
-
-class ReasoningPlan(BaseModel):
-    reasoning: str = Field(description="Detailed reasoning about what needs to be done")
-    plan: List[AgentPlan] = Field(description="List of steps in the execution plan")
 
 # Initialize the model
 model = init_chat_model(
@@ -43,16 +32,6 @@ tools = tool_registry.get_all_tools()
 # Add agent builder to tools
 agent_builder = AgentBuilder({tool.name: tool for tool in tools})
 tools.append(agent_builder)
-
-# State definition for the orchestrator
-class OrchestratorState(TypedDict):
-    messages: List[Dict[str, Any]]
-    reasoning: str
-    plan: List[Dict[str, Any]]
-    created_agents: List[Dict[str, Any]]
-    agent_results: Dict[str, Any]
-    final_response: str
-    current_step: str
 
 def create_orchestrator_agent():
     """Create the main orchestrator agent with reasoning and planning capabilities."""
@@ -355,3 +334,4 @@ if __name__ == "__main__":
     
     response = orchestrator.invoke(conversation)
     format_response(response)
+    
