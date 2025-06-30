@@ -7,12 +7,12 @@ name = "proximaai"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "jinja2>=3.1.6",
     "langchain[anthropic]>=0.3.26",
     "langgraph>=0.4.9",
-    "langgraph-cli>=0.3.3",
+    "langgraph-cli[inmem]>=0.3.3",
     "mcp[cli]>=1.9.4",
 ]
 
