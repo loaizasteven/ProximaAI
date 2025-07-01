@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import './App.css'
 import BlurText from './BlurText'
+import SplashCursor from './SplashCursor'
 
 function App() {
   const [enter, setEnter] = useState(false)
@@ -9,7 +10,10 @@ function App() {
   };
 
   return (
+    
     <>
+     <SplashCursor />
+
       <h1><BlurText
       text="Welcome to Proxima"
       shinyTexts={["Designer","Builder", "AI"]}
