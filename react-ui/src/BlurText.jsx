@@ -38,6 +38,11 @@ const BlurText = ({
   const ref = useRef(null);
   const baseStaticPause = 1000; // ms to keep base text static before shiny carousel
 
+  // Normalize shinyTexts to always be an array of objects
+  const normalizedShinyTexts = shinyTexts.map((s) =>
+    typeof s === 'string' ? { text: s } : s
+  );
+
   useEffect(() => {
     if (!ref.current) return;
     const observer = new IntersectionObserver(
@@ -56,12 +61,12 @@ const BlurText = ({
 
   useEffect(() => {
     if (phase !== 'shiny-carousel') return;
-    const total = shinyTexts.length;
+    const total = normalizedShinyTexts.length;
     const interval = setTimeout(() => {
       setCarouselIndex((prev) => (prev < total - 1 ? prev + 1 : 0));
     }, carouselInterval);
     return () => clearTimeout(interval);
-  }, [carouselIndex, shinyTexts.length, carouselInterval, phase]);
+  }, [carouselIndex, normalizedShinyTexts.length, carouselInterval, phase]);
 
   const defaultFrom = useMemo(
     () =>
@@ -95,7 +100,7 @@ const BlurText = ({
   let elementsWithShiny = [];
   if (phase === 'base-animating' || phase === 'base-static') {
     elementsWithShiny = [...elements];
-  } else if (phase === 'shiny-carousel' && shinyTexts[carouselIndex]) {
+  } else if (phase === 'shiny-carousel' && normalizedShinyTexts[carouselIndex]) {
     elementsWithShiny = [`__SHINY__${carouselIndex}`];
   }
 
@@ -119,7 +124,7 @@ const BlurText = ({
           const shinyMatch = /^__SHINY__(\d+)$/.exec(segment);
           if (shinyMatch) {
             const shinyIdx = parseInt(shinyMatch[1], 10);
-            const shinyProps = shinyTexts[shinyIdx] || {};
+            const shinyProps = normalizedShinyTexts[shinyIdx] || {};
             const speed = shinyProps.speed !== undefined ? shinyProps.speed : shinySpeed;
             return (
               <motion.span
