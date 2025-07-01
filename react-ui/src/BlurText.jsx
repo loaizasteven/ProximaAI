@@ -30,7 +30,7 @@ const BlurText = ({
   easing = (t) => t,
   onAnimationComplete,
   stepDuration = 0.35,
-  carouselInterval = 2000,
+  carouselInterval = 20,
 }) => {
   const elements = animateBy === 'words' ? text.split(' ') : text.split('');
   const [phase, setPhase] = useState('base-animating');
@@ -43,22 +43,25 @@ const BlurText = ({
     typeof s === 'string' ? { text: s } : s
   );
 
-  useEffect(() => {
-    if (!ref.current) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setCarouselIndex(0);
-          observer.unobserve(ref.current);
-        }
-      },
-      { threshold, rootMargin }
-    );
-    observer.observe(ref.current);
-    return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [threshold, rootMargin]);
+  // // Intersection observer logic 
+  // useEffect(() => {
+  //   if (!ref.current) return;
+  //   const observer = new IntersectionObserver(
+  //     ([entry]) => {
+  //       if (entry.isIntersecting) {
+  //         setPhase('base-animating');
+  //         setCarouselIndex(-1);
+  //         observer.unobserve(ref.current);
+  //       }
+  //     },
+  //     { threshold, rootMargin }
+  //   );
+  //   observer.observe(ref.current);
+  //   return () => observer.disconnect();
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [threshold, rootMargin]);
 
+  // Carousel logic
   useEffect(() => {
     if (phase !== 'shiny-carousel') return;
     const total = normalizedShinyTexts.length;
@@ -68,6 +71,7 @@ const BlurText = ({
     return () => clearTimeout(interval);
   }, [carouselIndex, normalizedShinyTexts.length, carouselInterval, phase]);
 
+  // Animation keyframes and timing
   const defaultFrom = useMemo(
     () =>
       direction === 'top'
@@ -97,75 +101,84 @@ const BlurText = ({
     stepCount === 1 ? 0 : i / (stepCount - 1)
   );
 
-  let elementsWithShiny = [];
-  if (phase === 'base-animating' || phase === 'base-static') {
-    elementsWithShiny = [...elements];
-  } else if (phase === 'shiny-carousel' && normalizedShinyTexts[carouselIndex]) {
-    elementsWithShiny = [`__SHINY__${carouselIndex}`];
-  }
+  // Animation keyframes for shiny text
+  const animateKeyframes = buildKeyframes(fromSnapshot, toSnapshots);
+  const spanTransition = {
+    duration: totalDuration,
+    times,
+    delay: 0,
+  };
+  spanTransition.ease = easing;
 
   return (
-    <>
-      <p
-        ref={ref}
-        className={className}
-        style={{ display: 'flex', flexWrap: 'wrap' }}
-      >
-        {elementsWithShiny.map((segment, index) => {
-          const animateKeyframes = buildKeyframes(fromSnapshot, toSnapshots);
-
-          const spanTransition = {
-            duration: totalDuration,
-            times,
-            delay: (index * delay) / 1000,
-          };
-          spanTransition.ease = easing;
-
-          const shinyMatch = /^__SHINY__(\d+)$/.exec(segment);
-          if (shinyMatch) {
-            const shinyIdx = parseInt(shinyMatch[1], 10);
-            const shinyProps = normalizedShinyTexts[shinyIdx] || {};
-            const speed = shinyProps.speed !== undefined ? shinyProps.speed : shinySpeed;
+    <p
+      ref={ref}
+      className={className}
+      style={{ display: 'flex', flexWrap: 'wrap' }}
+    >
+      {/* Animate base text in, then render as static */}
+      {phase === 'base-animating'
+        ? elements.map((segment, index) => {
+            const animateKeyframes = buildKeyframes(fromSnapshot, toSnapshots);
+            const spanTransition = {
+              duration: totalDuration,
+              times,
+              delay: (index * delay) / 1000,
+            };
+            spanTransition.ease = easing;
             return (
               <motion.span
                 className="inline-block will-change-[transform,filter,opacity]"
-                key={`shiny-text-${shinyIdx}`}
+                key={index}
                 initial={fromSnapshot}
                 animate={animateKeyframes}
                 transition={spanTransition}
-                onAnimationComplete={onAnimationComplete}
+                onAnimationComplete={
+                  index === elements.length - 1
+                    ? () => {
+                        setPhase('base-static');
+                        setTimeout(() => {
+                          setPhase('shiny-carousel');
+                          setCarouselIndex(0);
+                        }, baseStaticPause);
+                      }
+                    : undefined
+                }
               >
-                <ShinyText {...shinyProps} speed={speed} />
+                {segment === ' ' ? '\u00A0' : segment}
+                {animateBy === 'words' && index < elements.length - 1 && '\u00A0'}
               </motion.span>
             );
-          }
-
-          return (
-            <motion.span
-              className="inline-block will-change-[transform,filter,opacity]"
+          })
+        : elements.map((segment, index) => (
+            <span
+              className="inline-block"
               key={index}
-              initial={fromSnapshot}
-              animate={phase === 'base-animating' ? animateKeyframes : fromSnapshot}
-              transition={spanTransition}
-              onAnimationComplete={
-                phase === 'base-animating' && index === elementsWithShiny.length - 1
-                  ? () => {
-                      setPhase('base-static');
-                      setTimeout(() => {
-                        setPhase('shiny-carousel');
-                        setCarouselIndex(0);
-                      }, baseStaticPause);
-                    }
-                  : undefined
-              }
+              style={{ marginRight: animateBy === 'words' && index < elements.length - 1 ? '0.25em' : undefined }}
             >
               {segment === ' ' ? '\u00A0' : segment}
-              {animateBy === 'words' && index < elementsWithShiny.length - 1 && '\u00A0'}
-            </motion.span>
-          );
-        })}
-      </p>
-    </>
+              {animateBy === 'words' && index < elements.length - 1 && '\u00A0'}
+            </span>
+          ))}
+      {/* Animate the shiny text only during the carousel phase */}
+      {phase === 'shiny-carousel' && normalizedShinyTexts[carouselIndex] && (
+        <motion.span
+          className="inline-block will-change-[transform,filter,opacity]"
+          key={`shiny-text-${carouselIndex}`}
+          initial={fromSnapshot}
+          animate={buildKeyframes(fromSnapshot, toSnapshots)}
+          transition={{
+            duration: totalDuration,
+            times,
+            delay: 0,
+            ease: easing,
+          }}
+          onAnimationComplete={onAnimationComplete}
+        >
+          <ShinyText {...normalizedShinyTexts[carouselIndex]} speed={normalizedShinyTexts[carouselIndex].speed ?? shinySpeed} />
+        </motion.span>
+      )}
+    </p>
   );
 };
 
