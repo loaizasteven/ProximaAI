@@ -1,6 +1,7 @@
 import React from 'react';
 import './LandingPage.css'
 
+import logo from './assets/react.svg';
 
 function TrackCard( {title, description, colorClass, icon}) {
     return (
@@ -11,7 +12,7 @@ function TrackCard( {title, description, colorClass, icon}) {
                 <button className={`learn-more ${colorClass}`}>Learn more</button>
             </div>
             <div className="track-icon ">
-                {icon}
+                <img src={icon} alt="logo" />
             </div>
         </div>
     )
@@ -24,14 +25,14 @@ function ProductCard(){
                 title="Resume Builder with Veloa"
                 description="Start with a blank canvas and let Veloa guide you through the process of creating a professional resume."
                 colorClass="blue"
-                icon="a"
+                icon={logo}
             />
             <TrackCard
                 title="Veloa Application Assistant"
                 description="Let Veloa help you find the perfect job. Veloa will search for jobs, 
                 apply to them, and follow up with the hiring manager."
                 colorClass="purple"
-                icon="hg"
+                icon={logo}
             />
         </div>
     )
