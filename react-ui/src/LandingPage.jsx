@@ -5,13 +5,15 @@ import './LandingPage.css'
 function TrackCard( {title, description, colorClass, icon}) {
     return (
         <div className={`track-card ${colorClass}`}>
-      <div>
-        <h2>{title}</h2>
-        <p>{description}</p>
-        <button className={`learn-more ${colorClass}`}>Learn more</button>
-      </div>
-      <div className="track-icon ">{icon}</div>
-    </div>
+            <div className="track-content">
+                <h2>{title}</h2>
+                <p>{description}</p>
+                <button className={`learn-more ${colorClass}`}>Learn more</button>
+            </div>
+            <div className="track-icon ">
+                {icon}
+            </div>
+        </div>
     )
 }
 
