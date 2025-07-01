@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { useEffect, useRef, useState, useMemo } from 'react';
+import ShinyText from './ShinyText';
 
 const buildKeyframes = (from, steps) => {
   const keys = new Set([
@@ -16,6 +17,8 @@ const buildKeyframes = (from, steps) => {
 
 const BlurText = ({
   text = '',
+  shinyText = '',
+  shinySpeed = 10,
   delay = 200,
   className = '',
   animateBy = 'words',
@@ -29,6 +32,7 @@ const BlurText = ({
   stepDuration = 0.35,
 }) => {
   const elements = animateBy === 'words' ? text.split(' ') : text.split('');
+  const elementsWithShiny = [...elements, '__SHINY__'];
   const [inView, setInView] = useState(false);
   const ref = useRef(null);
 
@@ -78,38 +82,55 @@ const BlurText = ({
   );
 
   return (
-    <p
-      ref={ref}
-      className={className}
-      style={{ display: 'flex', flexWrap: 'wrap' }}
-    >
-      {elements.map((segment, index) => {
-        const animateKeyframes = buildKeyframes(fromSnapshot, toSnapshots);
+    <>
+      <p
+        ref={ref}
+        className={className}
+        style={{ display: 'flex', flexWrap: 'wrap' }}
+      >
+        {elementsWithShiny.map((segment, index) => {
+          const animateKeyframes = buildKeyframes(fromSnapshot, toSnapshots);
 
-        const spanTransition = {
-          duration: totalDuration,
-          times,
-          delay: (index * delay) / 1000,
-        };
-        (spanTransition).ease = easing;
+          const spanTransition = {
+            duration: totalDuration,
+            times,
+            delay: (index * delay) / 1000,
+          };
+          spanTransition.ease = easing;
 
-        return (
-          <motion.span
-            className="inline-block will-change-[transform,filter,opacity]"
-            key={index}
-            initial={fromSnapshot}
-            animate={inView ? animateKeyframes : fromSnapshot}
-            transition={spanTransition}
-            onAnimationComplete={
-              index === elements.length - 1 ? onAnimationComplete : undefined
-            }
-          >
-            {segment === ' ' ? '\u00A0' : segment}
-            {animateBy === 'words' && index < elements.length - 1 && '\u00A0'}
-          </motion.span>
-        );
-      })}
-    </p>
+          if (segment === '__SHINY__') {
+            return (
+              <motion.span
+                className="inline-block will-change-[transform,filter,opacity]"
+                key="shiny-text"
+                initial={fromSnapshot}
+                animate={inView ? animateKeyframes : fromSnapshot}
+                transition={spanTransition}
+                onAnimationComplete={onAnimationComplete}
+              >
+                <ShinyText text={shinyText} disabled={false} speed={shinySpeed} className='custom-class' />
+              </motion.span>
+            );
+          }
+
+          return (
+            <motion.span
+              className="inline-block will-change-[transform,filter,opacity]"
+              key={index}
+              initial={fromSnapshot}
+              animate={inView ? animateKeyframes : fromSnapshot}
+              transition={spanTransition}
+              onAnimationComplete={
+                index === elementsWithShiny.length - 1 ? onAnimationComplete : undefined
+              }
+            >
+              {segment === ' ' ? '\u00A0' : segment}
+              {animateBy === 'words' && index < elementsWithShiny.length - 2 && '\u00A0'}
+            </motion.span>
+          );
+        })}
+      </p>
+    </>
   );
 };
 

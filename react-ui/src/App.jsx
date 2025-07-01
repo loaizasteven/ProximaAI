@@ -11,7 +11,8 @@ function App() {
   return (
     <>
       <h1><BlurText
-      text="Welcome to ProximaAI"
+      text="Welcome to Proxima"
+      shinyText="AI"
       delay={200}
       animateBy="letters"
       direction="top"
