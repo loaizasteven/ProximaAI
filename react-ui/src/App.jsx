@@ -2,11 +2,16 @@ import { useState } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
+import BlurText from './BlurText'
 
 function App() {
   const [count, setCount] = useState(0)
+  const handleAnimationComplete = () => {
+    console.log('Animation completed!');
+  };
 
   return (
+
     <>
       <div>
         <a href="https://vite.dev" target="_blank">
@@ -16,7 +21,14 @@ function App() {
           <img src={reactLogo} className="logo react" alt="React logo" />
         </a>
       </div>
-      <h1>Vite + React</h1>
+      <h1><BlurText
+      text="Welcome to ProximaAI"
+      delay={200}
+      animateBy="letters"
+      direction="top"
+      onAnimationComplete={handleAnimationComplete}
+      className="text-2xl mb-8"
+    /></h1>
       <div className="card">
         <button onClick={() => setCount((count) => count + 1)}>
           count is {count}
