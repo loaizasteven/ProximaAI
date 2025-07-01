@@ -1,8 +1,13 @@
 .dock-outer {
-    margin: 0 0.5rem;
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    background: none;
+    padding: 16px 0;
+    z-index: 100;
     display: flex;
-    max-width: 100%;
-    align-items: center;
+    justify-content: center; /* or space-between, as needed */
   }
   
   .dock-panel {

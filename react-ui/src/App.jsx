@@ -31,7 +31,7 @@ function App() {
 
   return (
     
-    <>
+    <div className="app-container">
 
       <h1><BlurText
       text="Welcome to Proxima"
@@ -65,7 +65,7 @@ function App() {
       baseItemSize={50}
       magnification={70}
     />
-    </>
+    </div>
 
     
   )
