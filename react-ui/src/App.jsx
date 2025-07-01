@@ -13,8 +13,9 @@ function App() {
       <h1><BlurText
       text="Welcome to Proxima"
       shinyTexts={["Designer","Builder", "AI"]}
-      carouselInterval={2000}
-      delay={200}
+      stepDuration={0.35}
+      carouselInterval={1500}
+      delay={20}
       animateBy="letters"
       direction="top"
       onAnimationComplete={handleAnimationComplete}
