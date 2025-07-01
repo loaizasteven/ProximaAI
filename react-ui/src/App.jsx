@@ -7,23 +7,18 @@ function App() {
   const [enter, setEnter] = useState(false)
   const [mainPage, setMainPage] = useState(false)
   const handleAnimationComplete = () => {
-    setEnter(true)
+    if (!mainPage) {
+      setEnter(true)
+    }
   };
 
   const handleMainPage = () => {
     setMainPage(true)
+    setEnter(false)
     console.log("mainPage", mainPage)
+    console.log("enter", enter)
   }
 
-  if (mainPage) {
-    return (
-      <>
-      <h1>ProximaAI</h1>
-      <p>ProximaAI is a platform for building AI-powered applications.</p>
-      </>
-    )
-  }
-  
   return (
     
     <>
@@ -46,6 +41,13 @@ function App() {
       <div className="flex flex-col items-center justify-center h-screen">
         <button onClick={handleMainPage}>Enter</button>
       </div>
+    )}
+
+    {mainPage && (
+      <>
+        <h1>ProximaAI</h1>
+        <p>ProximaAI is a platform for building AI-powered applications.</p>
+      </>
     )}
     </>
   )
