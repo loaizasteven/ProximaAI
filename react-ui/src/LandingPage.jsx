@@ -21,15 +21,16 @@ function ProductCard(){
     return (
         <div className="product-card">
             <TrackCard
-                title="Product"
-                description="Product"
+                title="Resume Builder with Veloa"
+                description="Start with a blank canvas and let Veloa guide you through the process of creating a professional resume."
                 colorClass="blue"
                 icon="a"
             />
             <TrackCard
-                title="Product2"
-                description="Product2"
-                colorClass="red"
+                title="Veloa Application Assistant"
+                description="Let Veloa help you find the perfect job. Veloa will search for jobs, 
+                apply to them, and follow up with the hiring manager."
+                colorClass="purple"
                 icon="hg"
             />
         </div>
