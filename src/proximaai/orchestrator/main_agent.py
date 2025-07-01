@@ -324,21 +324,7 @@ def format_response(response):
 if __name__ == "__main__":
     conversation = {
         "messages": [
-            {"role": "user", "content": """
-            I want to apply for a job at Google. I have a resume that I need to optimize for the job and understand if I meet all qualifications.
-
-            Google's job description is:
-               ML Engineer with 3+ years of experience in machine learning and deep learning.
-
-            My Resume is:
-               Education:
-                  Bachelor of Science in Computer Science
-                  Master of Science in Machine Learning
-
-               Experience:
-                  - 3+ years of experience in machine learning and deep learning
-                  - 2+ years of experience in software development
-            """}
+            {"role": "user", "content": "I want to apply for a job at Google. I have a resume that I need to optimize for the job and understand if I meet all qualifications.\nGoogle's job description is:ML Engineer with 3+ years of experience in machine learning and deep learning.\n My Resume is:Education:Bachelor of Science in Computer Science Experience:3+ years of experience in machine learning and deep learning"}
         ],
         "reasoning": "",
         "plan": [],
