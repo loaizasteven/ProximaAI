@@ -24,10 +24,9 @@ function App() {
   }
 
   const items = [
-    { icon: <VscHome size={18} />, label: 'Home', onClick: () => alert('Home!') },
-    { icon: <VscArchive size={18} />, label: 'Archive', onClick: () => alert('Archive!') },
-    { icon: <VscAccount size={18} />, label: 'Profile', onClick: () => alert('Profile!') },
-    { icon: <VscSettingsGear size={18} />, label: 'Settings', onClick: () => alert('Settings!') },
+    { icon: <VscHome size={18} color="white"/>, label: 'Home', onClick: () => alert('Home!') },
+    { icon: <VscAccount size={18} color="white"/>, label: 'Profile', onClick: () => alert('Profile!') },
+    { icon: <VscSettingsGear size={18} color="white"/>, label: 'Settings', onClick: () => alert('Settings!') },
   ];
 
   return (
