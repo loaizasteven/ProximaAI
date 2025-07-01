@@ -24,7 +24,6 @@ function App() {
   return (
     
     <>
-     <SplashCursor SPLAT_RADIUS={0.1} />
 
       <h1><BlurText
       text="Welcome to Proxima"
@@ -44,8 +43,13 @@ function App() {
         <button onClick={handleMainPage}>Enter</button>
       </div>
     )}
+
+
     {/* Render the main page if the mainPage state is true */}
     {mainPage && <LandingPage />}
+
+    {/* Remove animation when mainPage is true */}
+    {!mainPage && <SplashCursor SPLAT_RADIUS={0.1} />}
     </>
   )
 }
