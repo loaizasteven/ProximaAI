@@ -1,9 +1,11 @@
+import { useState } from 'react'
 import './App.css'
 import BlurText from './BlurText'
 
 function App() {
+  const [enter, setEnter] = useState(false)
   const handleAnimationComplete = () => {
-    console.log('Animation completed!');
+    setEnter(true)
   };
 
   return (
@@ -15,7 +17,14 @@ function App() {
       direction="top"
       onAnimationComplete={handleAnimationComplete}
       className="text-2xl mb-8"
-    /></h1>    
+
+    />
+    </h1>
+    {enter && (
+      <div className="flex flex-col items-center justify-center h-screen">
+        <button onClick={() => setEnter(false)}>Enter</button>
+      </div>
+    )}
     </>
   )
 }
