@@ -5,10 +5,25 @@ import SplashCursor from './SplashCursor'
 
 function App() {
   const [enter, setEnter] = useState(false)
+  const [mainPage, setMainPage] = useState(false)
   const handleAnimationComplete = () => {
     setEnter(true)
   };
 
+  const handleMainPage = () => {
+    setMainPage(true)
+    console.log("mainPage", mainPage)
+  }
+
+  if (mainPage) {
+    return (
+      <>
+      <h1>ProximaAI</h1>
+      <p>ProximaAI is a platform for building AI-powered applications.</p>
+      </>
+    )
+  }
+  
   return (
     
     <>
@@ -29,7 +44,7 @@ function App() {
     </h1>
     {enter && (
       <div className="flex flex-col items-center justify-center h-screen">
-        <button onClick={() => setEnter(false)}>Enter</button>
+        <button onClick={handleMainPage}>Enter</button>
       </div>
     )}
     </>
