@@ -101,7 +101,53 @@ def create_orchestrator_agent():
                 "model": "anthropic:claude-3-7-sonnet-latest",
                 "temperature": 0.0
             }
+            
+            
+            # Filter tools to only use available ones
+            available_tool_names = [tool for tool in step["tools_needed"] if tool in available_tools]
+            if not available_tool_names:
+                # Use default tools if none of the requested tools are available
+                available_tool_names = ["web_search", "resume_optimizer"]
+                logger.warning(f"No requested tools available for {step['agent_type']}, using defaults", 
+                             requested_tools=step["tools_needed"], 
+                             default_tools=available_tool_names)
+            
+            agent_spec["tools"] = available_tool_names
+            
+            # Create the agent using the agent builder
+            result = agent_builder._run(json.dumps(agent_spec))
+            logger.info(f"Created {step['agent_type']}", result=result)
+            
+            # Extract agent ID properly
+            agent_id = None
+            if "ID: " in result:
+                id_part = result.split("ID: ")[-1]
+                # Extract just the ID part (before the closing parenthesis)
+                agent_id = id_part.split(")")[0] if ")" in id_part else id_part.split()[0]
+            
                     
+            # Filter tools to only use available ones
+            available_tool_names = [tool for tool in step["tools_needed"] if tool in available_tools]
+            if not available_tool_names:
+                # Use default tools if none of the requested tools are available
+                available_tool_names = ["web_search", "resume_optimizer"]
+                logger.warning(f"No requested tools available for {step['agent_type']}, using defaults", 
+                             requested_tools=step["tools_needed"], 
+                             default_tools=available_tool_names)
+            
+            agent_spec["tools"] = available_tool_names
+            
+            # Create the agent using the agent builder
+            result = agent_builder._run(json.dumps(agent_spec))
+            logger.info(f"Created {step['agent_type']}", result=result)
+            
+            # Extract agent ID properly
+            agent_id = None
+            if "ID: " in result:
+                id_part = result.split("ID: ")[-1]
+                # Extract just the ID part (before the closing parenthesis)
+                agent_id = id_part.split(")")[0] if ")" in id_part else id_part.split()[0]
+            
             created_agents.append({
                 "step": step["step"],
                 "agent_spec": agent_spec,
