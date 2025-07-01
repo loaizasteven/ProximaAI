@@ -24,7 +24,7 @@ function App() {
   return (
     
     <>
-     <SplashCursor />
+     <SplashCursor SPLAT_RADIUS={0.1} />
 
       <h1><BlurText
       text="Welcome to Proxima"
