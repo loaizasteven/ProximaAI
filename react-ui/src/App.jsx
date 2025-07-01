@@ -12,7 +12,11 @@ function App() {
     <>
       <h1><BlurText
       text="Welcome to Proxima"
-      shinyText="AI"
+      shinyTexts={[
+        {text: "Builder"}, 
+        {text: "AI"}
+      ]}
+      carouselInterval={2000}
       delay={200}
       animateBy="letters"
       direction="top"

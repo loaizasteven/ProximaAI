@@ -17,7 +17,7 @@ const buildKeyframes = (from, steps) => {
 
 const BlurText = ({
   text = '',
-  shinyText = '',
+  shinyTexts = [],
   shinySpeed = 10,
   delay = 200,
   className = '',
@@ -30,18 +30,20 @@ const BlurText = ({
   easing = (t) => t,
   onAnimationComplete,
   stepDuration = 0.35,
+  carouselInterval = 2000,
 }) => {
   const elements = animateBy === 'words' ? text.split(' ') : text.split('');
-  const elementsWithShiny = [...elements, '__SHINY__'];
-  const [inView, setInView] = useState(false);
+  const [phase, setPhase] = useState('base-animating');
+  const [carouselIndex, setCarouselIndex] = useState(-1);
   const ref = useRef(null);
+  const baseStaticPause = 1000; // ms to keep base text static before shiny carousel
 
   useEffect(() => {
     if (!ref.current) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setInView(true);
+          setCarouselIndex(0);
           observer.unobserve(ref.current);
         }
       },
@@ -51,6 +53,15 @@ const BlurText = ({
     return () => observer.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threshold, rootMargin]);
+
+  useEffect(() => {
+    if (phase !== 'shiny-carousel') return;
+    const total = shinyTexts.length;
+    const interval = setTimeout(() => {
+      setCarouselIndex((prev) => (prev < total - 1 ? prev + 1 : 0));
+    }, carouselInterval);
+    return () => clearTimeout(interval);
+  }, [carouselIndex, shinyTexts.length, carouselInterval, phase]);
 
   const defaultFrom = useMemo(
     () =>
@@ -81,6 +92,13 @@ const BlurText = ({
     stepCount === 1 ? 0 : i / (stepCount - 1)
   );
 
+  let elementsWithShiny = [];
+  if (phase === 'base-animating' || phase === 'base-static') {
+    elementsWithShiny = [...elements];
+  } else if (phase === 'shiny-carousel' && shinyTexts[carouselIndex]) {
+    elementsWithShiny = [`__SHINY__${carouselIndex}`];
+  }
+
   return (
     <>
       <p
@@ -98,17 +116,21 @@ const BlurText = ({
           };
           spanTransition.ease = easing;
 
-          if (segment === '__SHINY__') {
+          const shinyMatch = /^__SHINY__(\d+)$/.exec(segment);
+          if (shinyMatch) {
+            const shinyIdx = parseInt(shinyMatch[1], 10);
+            const shinyProps = shinyTexts[shinyIdx] || {};
+            const speed = shinyProps.speed !== undefined ? shinyProps.speed : shinySpeed;
             return (
               <motion.span
                 className="inline-block will-change-[transform,filter,opacity]"
-                key="shiny-text"
+                key={`shiny-text-${shinyIdx}`}
                 initial={fromSnapshot}
-                animate={inView ? animateKeyframes : fromSnapshot}
+                animate={animateKeyframes}
                 transition={spanTransition}
                 onAnimationComplete={onAnimationComplete}
               >
-                <ShinyText text={shinyText} disabled={false} speed={shinySpeed} className='custom-class' />
+                <ShinyText {...shinyProps} speed={speed} />
               </motion.span>
             );
           }
@@ -118,14 +140,22 @@ const BlurText = ({
               className="inline-block will-change-[transform,filter,opacity]"
               key={index}
               initial={fromSnapshot}
-              animate={inView ? animateKeyframes : fromSnapshot}
+              animate={phase === 'base-animating' ? animateKeyframes : fromSnapshot}
               transition={spanTransition}
               onAnimationComplete={
-                index === elementsWithShiny.length - 1 ? onAnimationComplete : undefined
+                phase === 'base-animating' && index === elementsWithShiny.length - 1
+                  ? () => {
+                      setPhase('base-static');
+                      setTimeout(() => {
+                        setPhase('shiny-carousel');
+                        setCarouselIndex(0);
+                      }, baseStaticPause);
+                    }
+                  : undefined
               }
             >
               {segment === ' ' ? '\u00A0' : segment}
-              {animateBy === 'words' && index < elementsWithShiny.length - 2 && '\u00A0'}
+              {animateBy === 'words' && index < elementsWithShiny.length - 1 && '\u00A0'}
             </motion.span>
           );
         })}
