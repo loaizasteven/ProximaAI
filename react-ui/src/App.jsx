@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import './App.css'
+
 import BlurText from './BlurText'
 import SplashCursor from './SplashCursor'
+import LandingPage from './LandingPage';
 
 function App() {
   const [enter, setEnter] = useState(false)
@@ -42,13 +44,8 @@ function App() {
         <button onClick={handleMainPage}>Enter</button>
       </div>
     )}
-
-    {mainPage && (
-      <>
-        <h1>ProximaAI</h1>
-        <p>ProximaAI is a platform for building AI-powered applications.</p>
-      </>
-    )}
+    {/* Render the main page if the mainPage state is true */}
+    {mainPage && <LandingPage />}
     </>
   )
 }
