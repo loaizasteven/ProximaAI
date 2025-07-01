@@ -1,0 +1,32 @@
+.track-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 800pc;
+    border-radius: 16px;
+    padding: 20px;
+    margin: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  
+  .track-card.blue {
+    background: #e0ecec;
+  }
+
+  .track-card.red {
+    background: #ba8676;
+  }
+
+  .learn-more.blue {
+    background: #809393;
+    color: #fff;
+    border: none;
+  }
+  
+  .learn-more.red {
+    background: #885e51;
+    color: #fff;
+    border: none;
+  }
+  
