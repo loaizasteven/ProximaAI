@@ -8,6 +8,7 @@ import json
 import asyncio
 from datetime import datetime
 import re
+import uuid
 from pydantic import BaseModel, Field
 from langchain.output_parsers import PydanticOutputParser
 import time
@@ -91,10 +92,6 @@ def create_orchestrator_agent():
         
         logger.info("🔧 CREATING SPECIALIZED AGENTS")
         
-        # Get available tool names
-        available_tools = [tool.name for tool in tools]
-        logger.info("Available tools", tools=available_tools)
-        
         for step in plan:
             agent_spec = {
                 "name": step["agent_type"],
@@ -104,40 +101,13 @@ def create_orchestrator_agent():
                 "model": "anthropic:claude-3-7-sonnet-latest",
                 "temperature": 0.0
             }
-            
-            # Filter tools to only use available ones
-            available_tool_names = [tool for tool in step["tools_needed"] if tool in available_tools]
-            if not available_tool_names:
-                # Use default tools if none of the requested tools are available
-                available_tool_names = ["web_search", "resume_optimizer"]
-                logger.warning(f"No requested tools available for {step['agent_type']}, using defaults", 
-                             requested_tools=step["tools_needed"], 
-                             default_tools=available_tool_names)
-            
-            agent_spec["tools"] = available_tool_names
-            
-            # Create the agent using the agent builder
-            result = agent_builder._run(json.dumps(agent_spec))
-            logger.info(f"Created {step['agent_type']}", result=result)
-            
-            # Extract agent ID properly
-            agent_id = None
-            if "ID: " in result:
-                id_part = result.split("ID: ")[-1]
-                # Extract just the ID part (before the closing parenthesis)
-                agent_id = id_part.split(")")[0] if ")" in id_part else id_part.split()[0]
-            
+                    
             created_agents.append({
                 "step": step["step"],
                 "agent_spec": agent_spec,
-                "agent_id": agent_id
+                "agent_id": uuid.uuid4()
             })
             
-            logger.log_agent_creation(step['agent_type'], agent_id or "unknown", available_tool_names)
-        
-        duration = time.time() - start_time
-        logger.log_performance("create_specialized_agents", duration, agents_created=len(created_agents))
-        
         return {
             **state,
             "created_agents": created_agents,
@@ -161,17 +131,38 @@ def create_orchestrator_agent():
         
         user_message = graph_state["messages"][-1]["content"] if graph_state["messages"] else ""
         agent_results = {}
+
+        # Get available tool names
+        available_tools = [tool.name for tool in tools]
+        logger.info("Available tools", tools=available_tools)
         
+        # Filter tools to only use available ones
+        available_tool_names = [tool for tool in agent_info["tools"] if tool in available_tools]
+        if not available_tool_names:
+            # Use default tools if none of the requested tools are available
+            available_tool_names = available_tools
+            logger.warning(f"No requested tools available for {agent_info['name']}, using defaults", 
+                            requested_tools=agent_info["tools"], 
+                            default_tools=available_tool_names)
+        
+        agent_info["tools"] = available_tool_names
+        
+        # Create the agent using the agent builder
+        result = agent_builder._run(json.dumps(agent_info))
+        logger.info(f"Created {agent_info['name']}", result=result)
         logger.info(f"🚀 EXECUTING {state['agent_spec']['name']} AGENT TASKS")
         
         # Execute each agent's task
         agent_start_time = time.time()
-        agent_id = state["agent_id"]
+        if "ID: " in result:
+            id_part = result.split("ID: ")[-1]
+            # Extract just the ID part (before the closing parenthesis)
+            agent_id = id_part.split(")")[0] if ")" in id_part else id_part.split()[0]
         logger.info("Processing agent", agent_id=agent_id)
         
         if agent_id and agent_id in agent_builder.created_agents:
             agent = agent_builder.created_agents[agent_id]["agent"]
-            agent_spec = agent_info["agent_spec"]
+            agent_spec = agent_info
             
             logger.info(f"Executing {agent_spec['name']}", tools=agent_spec['tools'])
             
@@ -335,7 +326,7 @@ def format_response(response):
 if __name__ == "__main__":
     conversation = {
         "messages": [
-            {"role": "user", "content": "I want to apply for a job at Google. I have a resume that I need to optimize for the job and understand if I meet all qualifications.\nGoogle's job description is:ML Engineer with 3+ years of experience in machine learning and deep learning.\n My Resume is:Education:Bachelor of Science in Computer Science Experience:3+ years of experience in machine learning and deep learning"}
+            {"role": "user", "content": "I want to apply for a job at Meta. I have a resume that I need to optimize for the job and understand if I meet all qualifications.\nGoogle's job description is:ML Engineer with 3+ years of experience in machine learning and deep learning.\n My Resume is:Education:Bachelor of Science in Computer Science Experience:3+ years of experience in machine learning and deep learning"}
         ],
         "reasoning": "",
         "plan": [],
