@@ -11,37 +11,18 @@ import AboutPage from './AboutPage';
 
 function App() {
   const [enter, setEnter] = useState(false)
-  const [mainPage, setMainPage] = useState(false)
-  const [aboutPage, setAboutPage] = useState(false)
-
-  const AssignAboutPage = () => {
-    setAboutPage(true)
-  }
-  const handleAnimationComplete = () => {
-    if (!mainPage) {
-      setEnter(true)
-    }
-  };
-
-  const handleMainPage = () => {
-    setMainPage(true)
-    setEnter(false)
-    console.log("mainPage", mainPage)
-    console.log("enter", enter)
-  }
+  const [currentPage, setCurrentPage] = useState('welcome')
 
   const items = [
-    { icon: <VscHome size={18} color="white"/>, label: 'Home', onClick: () => alert('Home!') },
-    { icon: <VscAccount size={18} color="white"/>, label: 'Profile', onClick: () => alert('Profile!') },
-    { icon: <VscSettingsGear size={18} color="white"/>, label: 'Settings', onClick: () => alert('Settings!') },
-    { icon: <VscInfo size={18} color="white"/>, label: 'About', onClick: AssignAboutPage }
+    { icon: <VscHome size={18} color="white"/>, label: 'Home', onClick: () => setCurrentPage('main') },
+    { icon: <VscAccount size={18} color="white"/>, label: 'Profile', onClick: () => setCurrentPage('profile') },
+    { icon: <VscSettingsGear size={18} color="white"/>, label: 'Settings', onClick: () => setCurrentPage('settings') },
+    { icon: <VscInfo size={18} color="white"/>, label: 'About', onClick:() =>  setCurrentPage('about') }
   ];
 
   return (
     <div className="app-container">
-      {aboutPage ? (
-        <AboutPage />
-      ) : (
+      {(currentPage === 'welcome' || currentPage === 'main') && (
         <>
           <h1><BlurText
             text="Welcome to Proxima"
@@ -51,21 +32,19 @@ function App() {
             delay={20}
             animateBy="letters"
             direction="top"
-            onAnimationComplete={handleAnimationComplete}
+            onAnimationComplete={() => {}}
             className="text-2xl mb-8"
           />
           </h1>
-          {enter && (
-            <div className="flex flex-col items-center justify-center h-screen">
-              <button onClick={handleMainPage}>Enter</button>
-            </div>
-          )}
           {/* Render the main page if the mainPage state is true */}
-          {mainPage && <LandingPage />}
+          {currentPage === 'main' && <LandingPage />}
           {/* Remove animation when mainPage is true */}
-          {!mainPage && <SplashCursor SPLAT_RADIUS={0.1} />}
+          {!currentPage === 'main' && <SplashCursor SPLAT_RADIUS={0.1} />}
         </>
       )}
+      {currentPage === 'about' && (<AboutPage />)}
+      {currentPage === 'profile' && <div>Profile Page Coming Soon</div>}
+      {currentPage === 'settings' && <div>Settings Page Coming Soon</div>}
       <Dock 
         items={items}
         panelHeight={68}
