@@ -39,7 +39,7 @@ function App() {
           {/* Render the main page if the mainPage state is true */}
           {currentPage === 'main' && <LandingPage />}
           {/* Remove animation when mainPage is true */}
-          {!currentPage === 'main' && <SplashCursor SPLAT_RADIUS={0.1} />}
+          {currentPage === 'welcome' && <SplashCursor SPLAT_RADIUS={0.1} />}
         </>
       )}
       {currentPage === 'about' && (<AboutPage />)}
