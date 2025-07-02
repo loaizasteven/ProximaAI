@@ -10,6 +10,7 @@
     max-width: 1200px;
     margin: 0 auto;
     padding: 1rem;
+    background: none;
     box-sizing: border-box;
   
     --x: 50%;
@@ -111,9 +112,7 @@
     inset: 0;
     pointer-events: none;
     z-index: 3;
-    backdrop-filter: grayscale(1) brightness(0.78);
-    -webkit-backdrop-filter: grayscale(1) brightness(0.78);
-    background: rgba(0, 0, 0, 0.001);
+    background: none;
   
     mask-image: radial-gradient(circle var(--r) at var(--x) var(--y),
         transparent 0%,
@@ -140,9 +139,7 @@
     inset: 0;
     pointer-events: none;
     z-index: 4;
-    backdrop-filter: grayscale(1) brightness(0.78);
-    -webkit-backdrop-filter: grayscale(1) brightness(0.78);
-    background: rgba(0, 0, 0, 0.001);
+    background: none;
   
     mask-image: radial-gradient(circle var(--r) at var(--x) var(--y),
         white 0%,
