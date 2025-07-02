@@ -34,9 +34,9 @@ const AboutPage = () => {
 
   return (
     <>
-      <p>
-        ProximaAI is an AI-powered job search and resume assistant inspired by Anthropic's multi-agent research system. It leverages multi-agent technology and the Lang ecosystem to accelerate your career journey.
-      </p>
+      <h2>
+        Meet our Founding Members
+      </h2>
       
       <div style={{ height: '600px', position: 'relative' }}>
         <ChromaGrid 
