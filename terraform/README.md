@@ -1,5 +1,3 @@
-# Terraform Infrastructure for ProximaAI
-
 Terraform configuration for AWS Amplify deployment.
 
 ## Step 1: Initial Deployment
@@ -40,3 +38,6 @@ The most important part of the terraform spec is for resource management.
 
 ## Resources
 https://aws.amazon.com/getting-started/hands-on/build-react-app-amplify-graphql/module-one/
+=======
+ a
+>>>>>>> Stashed changes

@@ -20,6 +20,13 @@ resource "aws_iam_role" "terraform_role" {
                     "Service": "cloudformation.amazonaws.com"
                 },
                 "Action": "sts:AssumeRole"
+            },
+            {
+                "Effect": "Allow",
+                "Principal": {
+                    "Service": "amplify.amazonaws.com"
+                },
+                "Action": "sts:AssumeRole"
             }
         ]
     })
@@ -136,4 +143,4 @@ resource "aws_amplify_app" "ProximaAI" {
 
   # GitHub personal access token from environment variable
   access_token = var.github_access_token
-}
+} 
