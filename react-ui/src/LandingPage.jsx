@@ -40,7 +40,9 @@ function ProductCard(){
 
 const LandingPage = () => (
   <>
-  ProximaAI is an AI-powered job search and resume assistant inspired by Anthropic's multi-agent research system. It leverages multi-agent technology and the Lang ecosystem to accelerate your career journey.
+  <div className="landing-page-headline">
+      ProximaAI is an AI-powered job search and resume assistant inspired by Anthropic's multi-agent research system. It leverages multi-agent technology and the Lang ecosystem to accelerate your career journey.
+  </div>
   <div className="product-card-container">
     <ProductCard />
   </div>
