@@ -43,8 +43,8 @@ function App() {
         </>
       )}
       {currentPage === 'about' && (<AboutPage />)}
-      {currentPage === 'profile' && <div>Profile Page Coming Soon</div>}
-      {currentPage === 'settings' && <div>Settings Page Coming Soon</div>}
+      {currentPage === 'profile' && <div>Profile Page Coming Soon!</div>}
+      {currentPage === 'settings' && <div>Settings Page Coming Soon!</div>}
       <Dock 
         items={items}
         panelHeight={68}
