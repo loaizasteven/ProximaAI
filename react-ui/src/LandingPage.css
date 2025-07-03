@@ -6,8 +6,8 @@
     width: 100%;
     max-width: 100%;
     border-radius: 16px;
-    padding: 20px;
-    margin: 10px;
+    padding: 1.5%;
+    margin: 1%;
     box-shadow: 0 2px 8px rgba(0,0,0,0.04);
   }
   
@@ -17,13 +17,13 @@
     flex-direction: column;
     align-items: flex-start;
     flex: 1;
-    padding: 10px;
+    padding: 0;
   }
 
   .track-content p {
     word-break: break-word;
     white-space: normal;
-    max-width: 50ch;
+    max-width: 40ch;
     text-align: left;
   }
   .track-card.blue {
@@ -48,9 +48,16 @@
   
   @media (max-width: 600px) {
     .track-content h2 {
-      font-size: 1.2rem;
+      font-size: 1.1rem;
     }
     .track-content p {
       font-size: 1rem;
+    }
+    .track-content p {
+      max-width: 30ch;
+    }
+    .track-card {
+      padding: 2%;
+      margin: 2%;
     }
   }
