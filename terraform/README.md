@@ -32,3 +32,8 @@ terraform apply
 ```bash
 terraform destroy
 ``` 
+
+## Warning
+Due to changes in Amplify authentication methods to GitHub, then migration of the app might hang. If this happens comment out the repository in the `main.tf` and manually set up the connection. 
+
+The most important part of the terraform spec is for resource management.
