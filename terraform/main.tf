@@ -1,5 +1,5 @@
 provider "aws" {
-    region = "us-east-2"  # Set your desired region
+    region = "us-east-1"  # Set your desired region
 }
 
 variable "github_access_token" {
@@ -40,7 +40,7 @@ resource "aws_iam_role_policy_attachment" "terraform_amplify" {
 resource "aws_iam_role_policy" "terraform_minimal" {
     name = "terraform-minimal-policy"
     role = aws_iam_role.terraform_role.id
-
+    depends_on = [aws_iam_role.terraform_role]
     policy = jsonencode({
         "Version": "2012-10-17",
         "Statement": [
