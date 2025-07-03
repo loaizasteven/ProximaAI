@@ -2,6 +2,12 @@ provider "aws" {
     region = "us-west-2"  # Set your desired region
 }
 
+variable "github_access_token" {
+  description = "GitHub personal access token for Amplify"
+  type        = string
+  sensitive   = true
+}
+
 # Create a minimal IAM role with essential permissions
 resource "aws_iam_role" "terraform_role" {
     name = "aws-amplify-terraform-role"
@@ -85,4 +91,49 @@ resource "aws_iam_role_policy" "terraform_minimal" {
             }
         ]
     })
+}
+
+resource "aws_amplify_app" "ProximaAI" {
+  name       = "ProximaAI Application"
+  repository = "https://github.com/loaizasteven/ProximaAI"
+
+  # The default build_spec added by the Amplify Console for React.
+  build_spec = <<-EOT
+    version: 1
+    applications:
+    - appRoot: react-ui
+        backend:
+        phases:
+            build:
+            commands:
+                - npm ci --cache .npm --prefer-offline
+                - npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
+        frontend:
+        phases:
+            build:
+            commands:
+                - npm run build
+        artifacts:
+            baseDirectory: dist
+            files:
+            - '**/*'
+        cache:
+            paths:
+            - .npm/**/*
+  EOT
+
+  # The default rewrites and redirects added by the Amplify Console.
+  custom_rule {
+    source = "/<*>"
+    status = "404"
+    target = "/index.html"
+  }
+
+  environment_variables = {
+    AMPLIFY_DIFF_DEPLOY = "false"
+    AMPLIFY_MONOREPO_APP_ROOT = "react-ui"
+  }
+
+  # GitHub personal access token from environment variable
+  access_token = var.github_access_token
 }
