@@ -196,3 +196,9 @@ cython_debug/
 # ProximaAI logs
 logs/
 *.log
+
+# LangGraph API
+.langgraph_api
+
+# MacOS
+*.DS_Store

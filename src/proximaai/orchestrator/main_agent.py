@@ -1,4 +1,5 @@
 from langchain.chat_models import init_chat_model
+from langgraph.types import Send
 from langgraph.graph import StateGraph, END, START
 from langgraph.prebuilt import create_react_agent
 from typing import Dict, List, Any, TypedDict, Annotated
@@ -7,11 +8,12 @@ import json
 import asyncio
 from datetime import datetime
 import re
+import uuid
 from pydantic import BaseModel, Field
 from langchain.output_parsers import PydanticOutputParser
 import time
 
-from proximaai.utils.structured_output import ReasoningPlan, AgentPlan, OrchestratorState
+from proximaai.utils.structured_output import ReasoningPlan, AgentPlan, OrchestratorStateMultiAgent as OrchestratorState, AgentSpec
 from proximaai.prebuilt.prompt_templates import PromptTemplates
 from proximaai.tools.tool_registry import ToolRegistry
 from proximaai.tools.agent_builder import AgentBuilder
@@ -90,10 +92,6 @@ def create_orchestrator_agent():
         
         logger.info("🔧 CREATING SPECIALIZED AGENTS")
         
-        # Get available tool names
-        available_tools = [tool.name for tool in tools]
-        logger.info("Available tools", tools=available_tools)
-        
         for step in plan:
             agent_spec = {
                 "name": step["agent_type"],
@@ -104,6 +102,30 @@ def create_orchestrator_agent():
                 "temperature": 0.0
             }
             
+            
+            # Filter tools to only use available ones
+            available_tool_names = [tool for tool in step["tools_needed"] if tool in available_tools]
+            if not available_tool_names:
+                # Use default tools if none of the requested tools are available
+                available_tool_names = ["web_search", "resume_optimizer"]
+                logger.warning(f"No requested tools available for {step['agent_type']}, using defaults", 
+                             requested_tools=step["tools_needed"], 
+                             default_tools=available_tool_names)
+            
+            agent_spec["tools"] = available_tool_names
+            
+            # Create the agent using the agent builder
+            result = agent_builder._run(json.dumps(agent_spec))
+            logger.info(f"Created {step['agent_type']}", result=result)
+            
+            # Extract agent ID properly
+            agent_id = None
+            if "ID: " in result:
+                id_part = result.split("ID: ")[-1]
+                # Extract just the ID part (before the closing parenthesis)
+                agent_id = id_part.split(")")[0] if ")" in id_part else id_part.split()[0]
+            
+                    
             # Filter tools to only use available ones
             available_tool_names = [tool for tool in step["tools_needed"] if tool in available_tools]
             if not available_tool_names:
@@ -129,107 +151,131 @@ def create_orchestrator_agent():
             created_agents.append({
                 "step": step["step"],
                 "agent_spec": agent_spec,
-                "agent_id": agent_id
+                "agent_id": uuid.uuid4()
             })
             
-            logger.log_agent_creation(step['agent_type'], agent_id or "unknown", available_tool_names)
-        
-        duration = time.time() - start_time
-        logger.log_performance("create_specialized_agents", duration, agents_created=len(created_agents))
-        
         return {
             **state,
             "created_agents": created_agents,
             "current_step": "agents_created"
         }
     
-    def execute_agent_tasks(state: OrchestratorState) -> OrchestratorState:
+    def define_agent_graph_nodes(state: OrchestratorState):
+        created_agents = state["created_agents"]
+        return [Send("run_agent", {"state": state, "agent_spec": agent_info["agent_spec"], "agent_id": agent_info["agent_id"]}) for agent_info in created_agents]
+
+    class AgentSpec(TypedDict):
+        state: OrchestratorState
+        agent_spec: Any
+        agent_id: Any
+
+    def run_agent(state: AgentSpec) -> OrchestratorState:
         """Execute tasks with the created agents in parallel."""
         start_time = time.time()
-        logger.log_step("execute_agent_tasks", {"agents_count": len(state["created_agents"])})
+        graph_state = state['state'] 
+        agent_info = state['agent_spec']
         
-        created_agents = state["created_agents"]
-        user_message = state["messages"][-1]["content"] if state["messages"] else ""
+        user_message = graph_state["messages"][-1]["content"] if graph_state["messages"] else ""
         agent_results = {}
+
+        # Get available tool names
+        available_tools = [tool.name for tool in tools]
+        logger.info("Available tools", tools=available_tools)
         
-        logger.info("🚀 EXECUTING AGENT TASKS", number_of_agents=len(created_agents))
+        # Filter tools to only use available ones
+        available_tool_names = [tool for tool in agent_info["tools"] if tool in available_tools]
+        if not available_tool_names:
+            # Use default tools if none of the requested tools are available
+            available_tool_names = available_tools
+            logger.warning(f"No requested tools available for {agent_info['name']}, using defaults", 
+                            requested_tools=agent_info["tools"], 
+                            default_tools=available_tool_names)
+        
+        agent_info["tools"] = available_tool_names
+        
+        # Create the agent using the agent builder
+        result = agent_builder._run(json.dumps(agent_info))
+        logger.info(f"Created {agent_info['name']}", result=result)
+        logger.info(f"🚀 EXECUTING {state['agent_spec']['name']} AGENT TASKS")
         
         # Execute each agent's task
-        for agent_info in created_agents:
-            agent_start_time = time.time()
-            agent_id = agent_info["agent_id"]
-            logger.info("Processing agent", agent_id=agent_id)
+        agent_start_time = time.time()
+        if "ID: " in result:
+            id_part = result.split("ID: ")[-1]
+            # Extract just the ID part (before the closing parenthesis)
+            agent_id = id_part.split(")")[0] if ")" in id_part else id_part.split()[0]
+        logger.info("Processing agent", agent_id=agent_id)
+        
+        if agent_id and agent_id in agent_builder.created_agents:
+            agent = agent_builder.created_agents[agent_id]["agent"]
+            agent_spec = agent_info
             
-            if agent_id and agent_id in agent_builder.created_agents:
-                agent = agent_builder.created_agents[agent_id]["agent"]
-                agent_spec = agent_info["agent_spec"]
+            logger.info(f"Executing {agent_spec['name']}", tools=agent_spec['tools'])
+            
+            # Create task-specific prompt
+            task_prompt = f"""
+            {agent_spec['system_prompt']}
+            
+            USER REQUEST: {user_message}
+            
+            Please execute your specialized task and provide a detailed response.
+            """
+            
+            logger.debug("Task prompt created", prompt_length=len(task_prompt))
+            
+            # Execute the agent
+            try:
+                logger.debug("Invoking agent")
+                response = agent.invoke({
+                    "messages": [{"role": "user", "content": task_prompt}]
+                })
                 
-                logger.info(f"Executing {agent_spec['name']}", tools=agent_spec['tools'])
+                logger.debug("Agent response received", 
+                            response_type=type(response).__name__,
+                            response_keys=list(response.keys()) if isinstance(response, dict) else "Not a dict")
                 
-                # Create task-specific prompt
-                task_prompt = f"""
-                {agent_spec['system_prompt']}
+                # Extract the response
+                messages = response.get('messages', [])
+                logger.debug("Processing messages", message_count=len(messages))
                 
-                USER REQUEST: {user_message}
+                agent_response = ""
+                for i, message in enumerate(reversed(messages)):
+                    logger.debug(f"Processing message {i}", 
+                                message_type=type(message).__name__,
+                                has_content=hasattr(message, 'content'))
+                    if hasattr(message, 'content') and isinstance(message.content, str):
+                        agent_response = message.content
+                        logger.debug("Found response", response_length=len(agent_response))
+                        break
                 
-                Please execute your specialized task and provide a detailed response.
-                """
+                if not agent_response:
+                    agent_response = "No response content found"
+                    logger.warning("No response content found")
                 
-                logger.debug("Task prompt created", prompt_length=len(task_prompt))
+                agent_results[agent_spec['name']] = {
+                    "response": agent_response,
+                    "status": "completed"
+                }
                 
-                # Execute the agent
-                try:
-                    logger.debug("Invoking agent")
-                    response = agent.invoke({
-                        "messages": [{"role": "user", "content": task_prompt}]
-                    })
-                    
-                    logger.debug("Agent response received", 
-                               response_type=type(response).__name__,
-                               response_keys=list(response.keys()) if isinstance(response, dict) else "Not a dict")
-                    
-                    # Extract the response
-                    messages = response.get('messages', [])
-                    logger.debug("Processing messages", message_count=len(messages))
-                    
-                    agent_response = ""
-                    for i, message in enumerate(reversed(messages)):
-                        logger.debug(f"Processing message {i}", 
-                                   message_type=type(message).__name__,
-                                   has_content=hasattr(message, 'content'))
-                        if hasattr(message, 'content') and isinstance(message.content, str):
-                            agent_response = message.content
-                            logger.debug("Found response", response_length=len(agent_response))
-                            break
-                    
-                    if not agent_response:
-                        agent_response = "No response content found"
-                        logger.warning("No response content found")
-                    
-                    agent_results[agent_spec['name']] = {
-                        "response": agent_response,
-                        "status": "completed"
-                    }
-                    
-                    agent_duration = time.time() - agent_start_time
-                    logger.log_agent_execution(agent_spec['name'], "completed", agent_duration)
-                    
-                except Exception as e:
-                    agent_duration = time.time() - agent_start_time
-                    logger.exception(f"Agent execution failed: {agent_spec['name']}", 
-                                   agent_name=agent_spec['name'], 
-                                   error=str(e))
-                    agent_results[agent_spec['name']] = {
-                        "response": f"Error: {str(e)}",
-                        "status": "failed"
-                    }
-                    logger.log_agent_execution(agent_spec['name'], "failed", agent_duration)
-            else:
-                logger.warning("Agent not found in created agents", agent_id=agent_id)
-                agent_results[f"agent_{agent_id}"] = {
-                    "response": "Agent not found",
+                agent_duration = time.time() - agent_start_time
+                logger.log_agent_execution(agent_spec['name'], "completed", agent_duration)
+                
+            except Exception as e:
+                agent_duration = time.time() - agent_start_time
+                logger.exception(f"Agent execution failed: {agent_spec['name']}", 
+                                agent_name=agent_spec['name'], 
+                                error=str(e))
+                agent_results[agent_spec['name']] = {
+                    "response": f"Error: {str(e)}",
                     "status": "failed"
                 }
+                logger.log_agent_execution(agent_spec['name'], "failed", agent_duration)
+        else:
+            logger.warning("Agent not found in created agents", agent_id=agent_id)
+            agent_results[f"agent_{agent_id}"] = {
+                "response": "Agent not found",
+                "status": "failed"
+            }
         
         duration = time.time() - start_time
         logger.log_performance("execute_agent_tasks", duration, 
@@ -237,7 +283,7 @@ def create_orchestrator_agent():
                              successful_results=len([r for r in agent_results.values() if r["status"] == "completed"]))
         
         return {
-            **state,
+            **graph_state,
             "agent_results": agent_results,
             "current_step": "tasks_completed"
         }
@@ -294,14 +340,16 @@ def create_orchestrator_agent():
     # Add nodes
     workflow.add_node("analyze_request", analyze_request)
     workflow.add_node("create_agents", create_specialized_agents)
-    workflow.add_node("execute_tasks", execute_agent_tasks)
+    workflow.add_node("run_agent", run_agent)
     workflow.add_node("synthesize_response", synthesize_final_response)
     
     # Add edges
     workflow.add_edge(START, "analyze_request")
     workflow.add_edge("analyze_request", "create_agents")
-    workflow.add_edge("create_agents", "execute_tasks")
-    workflow.add_edge("execute_tasks", "synthesize_response")
+
+    #Dynamic Conditional Edges
+    workflow.add_conditional_edges("create_agents", define_agent_graph_nodes, ["run_agent"])
+    workflow.add_edge("run_agent", "synthesize_response")
     workflow.add_edge("synthesize_response", END)
     
     return workflow.compile()
@@ -324,21 +372,7 @@ def format_response(response):
 if __name__ == "__main__":
     conversation = {
         "messages": [
-            {"role": "user", "content": """
-            I want to apply for a job at Google. I have a resume that I need to optimize for the job and understand if I meet all qualifications.
-
-            Google's job description is:
-               ML Engineer with 3+ years of experience in machine learning and deep learning.
-
-            My Resume is:
-               Education:
-                  Bachelor of Science in Computer Science
-                  Master of Science in Machine Learning
-
-               Experience:
-                  - 3+ years of experience in machine learning and deep learning
-                  - 2+ years of experience in software development
-            """}
+            {"role": "user", "content": "I want to apply for a job at Meta. I have a resume that I need to optimize for the job and understand if I meet all qualifications.\nGoogle's job description is:ML Engineer with 3+ years of experience in machine learning and deep learning.\n My Resume is:Education:Bachelor of Science in Computer Science Experience:3+ years of experience in machine learning and deep learning"}
         ],
         "reasoning": "",
         "plan": [],
