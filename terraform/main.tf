@@ -1,5 +1,5 @@
 provider "aws" {
-    region = "us-west-2"  # Set your desired region
+    region = "us-east-2"  # Set your desired region
 }
 
 variable "github_access_token" {
