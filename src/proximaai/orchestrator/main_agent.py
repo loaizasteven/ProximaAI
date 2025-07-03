@@ -102,15 +102,20 @@ def create_orchestrator_agent():
                 "temperature": 0.0
             }
             
-            
+            # Get available tool names
+            available_tools = [tool.name for tool in tools]
+
             # Filter tools to only use available ones
             available_tool_names = [tool for tool in step["tools_needed"] if tool in available_tools]
             if not available_tool_names:
                 # Use default tools if none of the requested tools are available
-                available_tool_names = ["web_search", "resume_optimizer"]
+                available_tool_names = available_tools
                 logger.warning(f"No requested tools available for {step['agent_type']}, using defaults", 
                              requested_tools=step["tools_needed"], 
                              default_tools=available_tool_names)
+            
+            # Filter tools to only use available ones
+            available_tool_names = [tool for tool in step["tools_needed"] if tool in available_tools]
             
             agent_spec["tools"] = available_tool_names
             
