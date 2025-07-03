@@ -20,15 +20,6 @@ const AboutPage = () => {
         borderColor: "#3B82F6",
         gradient: "linear-gradient(145deg, #3B82F6, #000)",
         url: "https://www.linkedin.com/in/stevenloaiza"
-      },
-      {
-        image: "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png",
-        title: "TBD",
-        subtitle: "Founding AI Developer",
-        handle: "@tbd",
-        borderColor: "#3B82F6",
-        gradient: "linear-gradient(145deg, #3B82F6, #000)",
-        url: "https://www.linkedin.com/in/stevenloaiza"
       }
   ];
 

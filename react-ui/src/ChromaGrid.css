@@ -26,11 +26,27 @@
     }
   }
   
-  @media (max-width: 480px) {
+  @media (max-width: 600px) {
     .chroma-grid {
-      grid-template-columns: 320px;
-      gap: 0.75rem;
+      grid-template-columns: 1fr;
+      gap: 1rem;
       padding: 1rem;
+      justify-content: center;
+    }
+    .chroma-card {
+      width: 100%;
+      max-width: 280px;
+      margin: 0 auto;
+      height: 350px;
+    }
+    .chroma-img-wrapper {
+      flex: 0 0 200px;
+      width: 60%;
+      height: auto;
+    }
+    .chroma-info {
+      font-size: 0.75rem;
+      padding: 0.5rem 0.75rem;
     }
   }
   
