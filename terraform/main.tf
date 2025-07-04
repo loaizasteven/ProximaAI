@@ -27,6 +27,13 @@ resource "aws_iam_role" "terraform_role" {
                     "Service": "amplify.amazonaws.com"
                 },
                 "Action": "sts:AssumeRole"
+            },
+            {
+                "Effect": "Allow",
+                "Principal": {
+                    "Service": "codebuild.amazonaws.com"
+                },
+                "Action": "sts:AssumeRole"
             }
         ]
     })
@@ -41,6 +48,18 @@ resource "aws_iam_role_policy_attachment" "terraform_cloudformation" {
 resource "aws_iam_role_policy_attachment" "terraform_amplify" {
     role       = aws_iam_role.terraform_role.name
     policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess-Amplify"
+}
+
+# Add additional policy for CDK and SSM permissions
+resource "aws_iam_role_policy_attachment" "terraform_ssm" {
+    role       = aws_iam_role.terraform_role.name
+    policy_arn = "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess"
+}
+
+# Add CodeBuild permissions
+resource "aws_iam_role_policy_attachment" "terraform_codebuild" {
+    role       = aws_iam_role.terraform_role.name
+    policy_arn = "arn:aws:iam::aws:policy/AWSCodeBuildDeveloperAccess"
 }
 
 # Minimal inline policy for specific permissions not covered by managed policies
@@ -95,6 +114,18 @@ resource "aws_iam_role_policy" "terraform_minimal" {
                     "cognito-idp:DeleteUserPoolClient"
                 ],
                 "Resource": "*"
+            },
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "ssm:GetParameter",
+                    "ssm:GetParameters",
+                    "ssm:GetParametersByPath"
+                ],
+                "Resource": [
+                    "arn:aws:ssm:*:*:parameter/cdk-bootstrap/*",
+                    "arn:aws:ssm:*:*:parameter/aws/service/*"
+                ]
             }
         ]
     })
@@ -102,31 +133,32 @@ resource "aws_iam_role_policy" "terraform_minimal" {
 
 resource "aws_amplify_app" "ProximaAI" {
   name       = "ProximaAI Application"
-  repository = "https://github.com/loaizasteven/ProximaAI"
+#   repository = "https://github.com/loaizasteven/ProximaAI"
+  iam_service_role_arn = aws_iam_role.terraform_role.arn
 
   # The default build_spec added by the Amplify Console for React.
   build_spec = <<-EOT
     version: 1
     applications:
-    - appRoot: react-ui
+      - appRoot: react-ui
         backend:
-        phases:
+          phases:
             build:
-            commands:
+              commands:
                 - npm ci --cache .npm --prefer-offline
                 - npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
         frontend:
-        phases:
+          phases:
             build:
-            commands:
+              commands:
                 - npm run build
-        artifacts:
+          artifacts:
             baseDirectory: dist
             files:
-            - '**/*'
-        cache:
+              - '**/*'
+          cache:
             paths:
-            - .npm/**/*
+              - .npm/**/*
   EOT
 
   # The default rewrites and redirects added by the Amplify Console.
@@ -142,5 +174,5 @@ resource "aws_amplify_app" "ProximaAI" {
   }
 
   # GitHub personal access token from environment variable
-  access_token = var.github_access_token
+#   access_token = var.github_access_token
 } 
