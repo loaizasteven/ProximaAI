@@ -9,6 +9,10 @@ import Dock from './Dock';
 import LandingPage from './LandingPage';
 import AboutPage from './AboutPage';
 
+"use client";
+
+import { useStream } from "@langchain/langgraph-sdk/react";
+
 function App() {
   const [enter, setEnter] = useState(false)
   const [currentPage, setCurrentPage] = useState('welcome')
@@ -19,6 +23,12 @@ function App() {
     { icon: <VscSettingsGear size={18} color="white"/>, label: 'Settings', onClick: () => setCurrentPage('settings') },
     { icon: <VscInfo size={18} color="white"/>, label: 'About', onClick:() =>  setCurrentPage('about') }
   ];
+
+  const thread = useStream({
+    apiUrl: "http://localhost:2024",
+    assistantId: "main_agent",
+    messagesKey: "messages",
+  });
 
   return (
     <div className="app-container">
@@ -43,7 +53,41 @@ function App() {
         </>
       )}
       {currentPage === 'about' && (<AboutPage />)}
-      {currentPage === 'profile' && <div>Profile Page Coming Soon!</div>}
+      {currentPage === 'profile' && 
+        <div>
+      <div>
+        {thread.messages.map((message) => (
+          <div key={message.id}>
+            {typeof message.content === 'string' 
+              ? message.content 
+              : JSON.stringify(message.content)}
+          </div>
+        ))}
+      </div>
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+
+          const form = e.target;
+          const message = new FormData(form).get("message");
+
+          form.reset();
+          thread.submit({ messages: [{ type: "human", content: message }], reasoning: "", current_step: "start" });
+        }}
+      >
+        <input type="text" name="message" />
+
+        {thread.isLoading ? (
+          <button key="stop" type="button" onClick={() => thread.stop()}>
+            Stop
+          </button>
+        ) : (
+          <button type="submit">Send</button>
+        )}
+      </form>
+    </div>
+}
       {currentPage === 'settings' && <div>Settings Page Coming Soon!</div>}
       <Dock 
         items={items}
