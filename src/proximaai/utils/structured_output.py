@@ -56,6 +56,7 @@ class OrchestratorStateMultiAgent(TypedDict):
     plan: Annotated[List[Dict[str, Any]], select_first]
     created_agents: Annotated[List[Dict[str, Any]], select_first]
     agent_results: Annotated[Dict[str, Any], merge_dictionaries]  # Use the custom reducer
+    websearch_results: Annotated[Dict[str, Any], select_first]  # Web search research results
     final_response: Annotated[str, select_first]
     current_step: Annotated[str, select_first]
 
