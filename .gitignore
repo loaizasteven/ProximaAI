@@ -236,7 +236,6 @@ dist-ssr
 terraform/terraform.tfstate*
 
 # Local variable files
-terraform.tfvars
 *.tfvars
 
 # Crash log files
