@@ -522,6 +522,20 @@ wheels = [
 ]
 
 [[package]]
+name = "langchain-mcp-adapters"
+version = "0.1.8"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "langchain-core" },
+    { name = "mcp" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8a/f2/f61eef5dc4b7e2bbb65ea904d59b96bd36c7017265c8e4a99c23688771cd/langchain_mcp_adapters-0.1.8.tar.gz", hash = "sha256:5fc6a596b73be96198135a11707102e3a7e9470b4d149bbbb1c9f9d902e0fa42", size = 20750, upload-time = "2025-06-30T19:28:46.578Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/25/28/86e7abd8ca1ba9057556d1b3c562f61fa068eb59ca7f74aea0dbc1c58115/langchain_mcp_adapters-0.1.8-py3-none-any.whl", hash = "sha256:037323b772f3214986b127fe89d2e7e721ca5e852a618cdbbf00cc955154cc90", size = 13795, upload-time = "2025-06-30T19:28:44.75Z" },
+]
+
+[[package]]
 name = "langchain-text-splitters"
 version = "0.3.8"
 source = { registry = "https://pypi.org/simple" }
@@ -870,6 +884,7 @@ source = { editable = "." }
 dependencies = [
     { name = "jinja2" },
     { name = "langchain", extra = ["anthropic"] },
+    { name = "langchain-mcp-adapters" },
     { name = "langgraph" },
     { name = "langgraph-cli", extra = ["inmem"] },
     { name = "mcp", extra = ["cli"] },
@@ -879,6 +894,7 @@ dependencies = [
 requires-dist = [
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "langchain", extras = ["anthropic"], specifier = ">=0.3.26" },
+    { name = "langchain-mcp-adapters", specifier = ">=0.1.8" },
     { name = "langgraph", specifier = ">=0.4.9" },
     { name = "langgraph-cli", extras = ["inmem"], specifier = ">=0.3.3" },
     { name = "mcp", extras = ["cli"], specifier = ">=1.9.4" },
