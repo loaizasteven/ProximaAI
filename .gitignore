@@ -233,6 +233,7 @@ dist-ssr
 *.tfstate.*
 .terraform/
 .terraform.lock.hcl
+terraform/terraform.tfstate*
 
 # Local variable files
 terraform.tfvars
