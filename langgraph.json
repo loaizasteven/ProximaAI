@@ -1,5 +1,5 @@
 {
-    "dependencies": ["."],  
+    "dependencies": [".", "./pyproject.toml"],  
     "graphs": {
       "main_agent": "./src/proximaai/orchestrator/main_agent.py:create_orchestrator_agent"            
     },
