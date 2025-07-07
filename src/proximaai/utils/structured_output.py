@@ -49,6 +49,12 @@ def merge_dictionaries(current_dict: Dict[str, Any], new_dict: Dict[str, Any]) -
     return {**current_dict, **new_dict}  # Use dictionary unpacking to merge
 
 
+class WebSearchResults(TypedDict):
+    company: str
+    agent_response: str
+    tool_response: str
+    intermediate_steps: List[Dict[str, Any]]
+
 class OrchestratorStateMultiAgent(TypedDict):
     # https://langchain-ai.github.io/langgraph/troubleshooting/errors/INVALID_CONCURRENT_GRAPH_UPDATE/
     messages: Annotated[List[Dict[str, Any]], select_first]
@@ -56,7 +62,7 @@ class OrchestratorStateMultiAgent(TypedDict):
     plan: Annotated[List[Dict[str, Any]], select_first]
     created_agents: Annotated[List[Dict[str, Any]], select_first]
     agent_results: Annotated[Dict[str, Any], merge_dictionaries]  # Use the custom reducer
-    websearch_results: Annotated[Dict[str, Any], select_first]  # Web search research results
+    websearch_results: Annotated[WebSearchResults, select_first]  # Web search research results
     final_response: Annotated[str, select_first]
     current_step: Annotated[str, select_first]
 
