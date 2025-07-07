@@ -2,7 +2,7 @@ from langchain.chat_models import init_chat_model
 from langgraph.types import Send
 from langgraph.graph import StateGraph, END, START
 from langgraph.prebuilt import create_react_agent
-from typing import Dict, List, Any, TypedDict, Annotated
+from typing import Dict, List, Any, Annotated
 from dataclasses import dataclass
 import json
 import asyncio
@@ -12,6 +12,7 @@ import uuid
 from pydantic import BaseModel, Field
 from langchain.output_parsers import PydanticOutputParser
 import time
+from typing_extensions import TypedDict
 
 from proximaai.utils.structured_output import ReasoningPlan, AgentPlan, OrchestratorStateMultiAgent, AgentSpec, WebSearchResults
 

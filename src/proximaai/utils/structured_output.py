@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
-from typing import List, Dict, Any, TypedDict, Annotated
+from typing import List, Dict, Any, Annotated
+from typing_extensions import TypedDict
 import operator
 
 
