@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 from langchain.output_parsers import PydanticOutputParser
 import time
 
-from proximaai.utils.structured_output import ReasoningPlan, AgentPlan, OrchestratorStateMultiAgent, AgentSpec
+from proximaai.utils.structured_output import ReasoningPlan, AgentPlan, OrchestratorStateMultiAgent, AgentSpec, WebSearchResults
 
 # Create alias for compatibility
 OrchestratorState = OrchestratorStateMultiAgent
@@ -88,7 +88,6 @@ async def create_orchestrator_agent():
     
     async def websearch_research(state: OrchestratorState) -> OrchestratorState:
         """Perform web search research based on the user request."""
-        start_time = time.time()
         logger.log_step("websearch_research", {"user_message_length": len(state["messages"][-1]["content"]) if state["messages"] else 0})
         
         messages = state["messages"]
@@ -104,18 +103,12 @@ async def create_orchestrator_agent():
         try:
             # Extract company name from user message (simple approach)
             user_message_lower = user_message.lower()
-            company_name = "Meta"  # Default to Meta for now
+            company_name = "Geico"  # Default to Geico for now TODO: Make this dynamic
             
             # Execute company about page check
             search_result = await websearch_agent.check_company_about_page(company_name)
             
-            logger.info("🔍 WEB SEARCH RESEARCH COMPLETED", 
-                       status=search_result["status"],
-                       response_length=len(search_result["response"]))
-            
-            duration = time.time() - start_time
-            logger.log_performance("websearch_research", duration, 
-                                 search_status=search_result["status"])
+            logger.info("🔍 WEB SEARCH RESEARCH COMPLETED")
             
             return {
                 **state,
@@ -125,17 +118,15 @@ async def create_orchestrator_agent():
             
         except Exception as e:
             logger.error("Web search research failed", error=str(e))
-            duration = time.time() - start_time
-            logger.log_performance("websearch_research", duration, error=str(e))
             
             return {
                 **state,
-                "websearch_results": {
-                    "task": "web research",
-                    "response": f"Error performing web research: {str(e)}",
-                    "status": "failed",
-                    "agent_type": "web_search"
-                },
+                "websearch_results": WebSearchResults(
+                    company=company_name,
+                    agent_response="",
+                    tool_response=f"Error performing web research: {str(e)}",
+                    intermediate_steps=[]
+                ),
                 "current_step": "websearch_failed"
             }
     
