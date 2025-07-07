@@ -57,8 +57,9 @@ class WebSearchAgent:
 
         try:
             messages = response.get('messages', [])
-            agent_response = messages[-1].content[0]['text']
-            tool_response = ""
+            
+            # Get the last AI message more robustly
+            agent_response = ""
             for message in reversed(messages):
                 if hasattr(message, 'content') and isinstance(message.content, str):
                     print("her", message)
