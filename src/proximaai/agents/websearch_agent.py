@@ -2,6 +2,7 @@ from langgraph.prebuilt import create_react_agent
 from langchain.chat_models import init_chat_model
 from typing import Dict, Any, Union, Optional
 import asyncio
+import traceback
 from proximaai.tools.perplexity_search import PerplexityWebSearchTool
 from proximaai.utils.logger import get_logger
 
@@ -72,10 +73,11 @@ class WebSearchAgent:
                 intermediate_steps=messages
             )
         except Exception as e:
-            logger.error("Error in websearch_agent", error=str(e))
+            error_traceback = traceback.format_exc()
+            logger.error("Error in websearch_agent", traceback=error_traceback)
             return WebSearchResults(
                 company=company_name,
-                agent_response=str(e),
+                agent_response=f"Traceback:\n{error_traceback}",
                 tool_response="Error in websearch_agent",
                 intermediate_steps=messages
             )
