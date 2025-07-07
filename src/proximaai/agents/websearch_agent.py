@@ -2,20 +2,15 @@ from langgraph.prebuilt import create_react_agent
 from langchain.chat_models import init_chat_model
 from typing import Dict, Any, Union, Optional
 import asyncio
-from proximaai.mcp.langchain_mcp_transform import get_mcp_tools
+from proximaai.tools.perplexity_search import PerplexityWebSearchTool
 from proximaai.utils.logger import get_logger
 
-from langchain_core.language_models import (
-    BaseChatModel,
-    LanguageModelInput,
-    LanguageModelLike,
-)
+from proximaai.utils.structured_output import WebSearchResults
 
 logger = get_logger("websearch_agent")
 
-
 class WebSearchAgent:
-    """A specialized agent for checking company about pages using MCP tools."""
+    """A specialized agent for checking company about pages using Perplexity only."""
     
     def __init__(self, model_name: str = "anthropic:claude-3-7-sonnet-latest", temperature: float = 0.0):
         """Initialize the web search agent."""
@@ -24,58 +19,56 @@ class WebSearchAgent:
         logger.info("WebSearchAgent initialized", model=model_name)
     
     async def initialize(self):
-        """Initialize MCP tools."""
-        mcp_tools = await get_mcp_tools()
+        """Initialize Perplexity tool only."""
         self.agent = create_react_agent(
             model=self.model,
-            tools=mcp_tools,
+            tools=[PerplexityWebSearchTool()],
             prompt="You are a company research specialist. Your only task is to find and analyze company about pages."
         )
     
-    async def check_company_about_page(self, company_name: str) -> Dict[str, Any]:
+    async def check_company_about_page(self, company_name: str) -> WebSearchResults:
         """Check the about page of a specific company."""
         logger.info("Checking company about page", company_name=company_name)
         
         task_prompt = f"""
-        Find and analyze the about page for {company_name}.
+        Using the tools availeble to you find and analyze the about page for {company_name}.
         
         Search for: "{company_name} about us" or "{company_name} company about"
         
         Focus only on:
         1. Company mission and values
-        2. Company history and background
-        3. Company culture and work environment
-        4. Key company information from their official about page
         
-        Do not search for job postings, news, or other information. Only focus on the company's about page content.
+        Do not search for job postings, news, or other information. Only focus on the company's about page content. If the tool does not return relevant information, 
+        you should return "No relevant information found".
         """
         
         if self.agent is None:
-            return {
-                "company": company_name,
-                "response": "Agent not initialized",
-                "status": "failed",
-                "agent_type": "company_about_page"
-            }
+            return WebSearchResults(
+                company=company_name,
+                agent_response="Agent not initialized",
+                tool_response="Tool not initialized",
+                intermediate_steps=[]
+            )
         
         response = await self.agent.ainvoke({
             "messages": [{"role": "user", "content": task_prompt}]
         })
-        
         messages = response.get('messages', [])
-        agent_response = ""
+        agent_response = messages[-1].content[0]['text']
+        tool_response = ""
         for message in reversed(messages):
             if hasattr(message, 'content') and isinstance(message.content, str):
-                agent_response = message.content
+                print("her", message)
+                logger.info("Tool Called Response", Tool=message.name)
+                tool_response = message.content
                 break
         
-        return {
-            "company": company_name,
-            "response": agent_response,
-            "status": "completed",
-            "agent_type": "company_about_page"
-        }
-
+        return WebSearchResults(
+            company=company_name,
+            agent_response=agent_response,
+            tool_response=tool_response,
+            intermediate_steps=messages
+        )
 
 def create_websearch_agent(model_name: str = "anthropic:claude-3-7-sonnet-latest", temperature: float = 0.0) -> WebSearchAgent:
     """Factory function to create a web search agent."""
