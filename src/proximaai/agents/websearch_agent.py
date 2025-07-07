@@ -57,19 +57,27 @@ class WebSearchAgent:
 
         try:
             messages = response.get('messages', [])
-            
-            # Get the last AI message more robustly
             agent_response = ""
+            
+            try:
+                agent_response = messages[-1].content[0]['text']
+                agent_pull_msg_error = ""
+            except Exception as e:
+                logger.error("Error in websearch_agent", traceback=traceback.format_exc())
+                # search for the last agent call
+                agent_pull_msg_error = str(traceback.format_exc())
+            
+            tool_response = ""
             for message in reversed(messages):
-                if hasattr(message, 'content') and isinstance(message.content, str):
-                    print("her", message)
+                if hasattr(message, 'content') and isinstance(message.content, str) and message.type == "tool":
                     logger.info("Tool Called Response", Tool=message.name)
                     tool_response = message.content
-                    break
+                if hasattr(message, 'content') and isinstance(message.content, dict) and message.type == "ai":
+                    agent_response = message.content[0]['text']
             
             return WebSearchResults(
                 company=company_name,
-                agent_response=agent_response,
+                agent_response=f"agent_response: {agent_response}\n\nagent_pull_msg_error: {agent_pull_msg_error}",
                 tool_response=tool_response,
                 intermediate_steps=messages
             )
