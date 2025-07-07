@@ -53,22 +53,32 @@ class WebSearchAgent:
         response = await self.agent.ainvoke({
             "messages": [{"role": "user", "content": task_prompt}]
         })
-        messages = response.get('messages', [])
-        agent_response = messages[-1].content[0]['text']
-        tool_response = ""
-        for message in reversed(messages):
-            if hasattr(message, 'content') and isinstance(message.content, str):
-                print("her", message)
-                logger.info("Tool Called Response", Tool=message.name)
-                tool_response = message.content
-                break
-        
-        return WebSearchResults(
-            company=company_name,
-            agent_response=agent_response,
-            tool_response=tool_response,
-            intermediate_steps=messages
-        )
+
+        try:
+            messages = response.get('messages', [])
+            agent_response = messages[-1].content[0]['text']
+            tool_response = ""
+            for message in reversed(messages):
+                if hasattr(message, 'content') and isinstance(message.content, str):
+                    print("her", message)
+                    logger.info("Tool Called Response", Tool=message.name)
+                    tool_response = message.content
+                    break
+            
+            return WebSearchResults(
+                company=company_name,
+                agent_response=agent_response,
+                tool_response=tool_response,
+                intermediate_steps=messages
+            )
+        except Exception as e:
+            logger.error("Error in websearch_agent", error=str(e))
+            return WebSearchResults(
+                company=company_name,
+                agent_response=str(e),
+                tool_response="Error in websearch_agent",
+                intermediate_steps=messages
+            )
 
 def create_websearch_agent(model_name: str = "anthropic:claude-3-7-sonnet-latest", temperature: float = 0.0) -> WebSearchAgent:
     """Factory function to create a web search agent."""
