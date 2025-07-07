@@ -26,16 +26,16 @@ async def get_mcp_tools(mcp_tools: Union[list[Union[str, os.PathLike]], dict[str
             # file_config = await get_mcp_tools_from_json(file)
             # if "mcpServers" in file_config:
             mcp_config.update({"perplexity-ask": {
-            "command": "npx",
-        "args": [
-            "-y",
-            "server-perplexity-ask"
-        ],
-        "env": {
-          "PERPLEXITY_API_KEY": f"{os.getenv('PERPLEXITY_API_KEY')}"
-        },
-        "transport": "stdio"
-      }})
+                "command": "npx",
+                "args": [
+                    "-y",
+                    "server-perplexity-ask"
+                ],
+                "env": {
+                "PERPLEXITY_API_KEY": f"{os.getenv('PERPLEXITY_API_KEY')}"
+                },
+                "transport": "stdio"
+            }})
             # else:
                 # If no mcpServers key, assume the file contains server configs directly
                 # mcp_config.update(file_config)
