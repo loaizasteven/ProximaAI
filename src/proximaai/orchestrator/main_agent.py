@@ -396,24 +396,23 @@ async def create_orchestrator_agent():
     workflow = StateGraph(OrchestratorState)
     
     # Add nodes
-    # workflow.add_node("analyze_request", analyze_request)
+    workflow.add_node("analyze_request", analyze_request)
     workflow.add_node("websearch_research", websearch_research)
-    # workflow.add_node("create_agents", create_specialized_agents)
-    # workflow.add_node("run_agent", run_agent)
-    # workflow.add_node("synthesize_response", synthesize_final_response)
+    workflow.add_node("create_agents", create_specialized_agents)
+    workflow.add_node("run_agent", run_agent)
+    workflow.add_node("synthesize_response", synthesize_final_response)
     
     # Add edges
-    # workflow.add_edge(START, "analyze_request")
+    workflow.add_edge(START, "analyze_request")
     workflow.add_edge(START, "websearch_research")
-    workflow.add_edge("websearch_research", END)
     # workflow.add_edge("analyze_request", "websearch_research")
-    # workflow.add_edge("analyze_request", "create_agents")
-    # workflow.add_edge("websearch_research", "synthesize_response")
+    workflow.add_edge("analyze_request", "create_agents")
+    workflow.add_edge("websearch_research", "synthesize_response")
 
     #Dynamic Conditional Edges
-    # workflow.add_conditional_edges("create_agents", define_agent_graph_nodes, ["run_agent"])
-    # workflow.add_edge("run_agent", "synthesize_response")
-    # workflow.add_edge("synthesize_response", END)
+    workflow.add_conditional_edges("create_agents", define_agent_graph_nodes, ["run_agent"])
+    workflow.add_edge("run_agent", "synthesize_response")
+    workflow.add_edge("synthesize_response", END)
     
     return workflow.compile()
 
