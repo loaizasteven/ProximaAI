@@ -69,11 +69,12 @@ class WebSearchAgent:
             
             tool_response = ""
             for message in reversed(messages):
-                if hasattr(message, 'content') and isinstance(message.content, str) and message.type == "tool":
-                    logger.info("Tool Called Response", Tool=message.name)
-                    tool_response = message.content
-                if hasattr(message, 'content') and isinstance(message.content, dict) and message.type == "ai":
-                    agent_response = message.content[0]['text']
+                if hasattr(message, 'content') and isinstance(message.content, str):
+                    if message.type == "tool":
+                        logger.info("Tool Called Response", Tool=message.name)
+                        tool_response = message.content
+                    if message.type == "ai":
+                        agent_response = message.content
             
             return WebSearchResults(
                 company=company_name,
