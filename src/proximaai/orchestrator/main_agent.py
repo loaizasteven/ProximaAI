@@ -325,13 +325,14 @@ async def create_orchestrator_agent():
         logger.log_performance("execute_agent_tasks", duration, 
                              total_results=len(agent_results),
                              successful_results=len([r for r in agent_results.values() if r["status"] == "completed"]))
-        
+
         return {
             **graph_state,
             "agent_results": agent_results,
-            "current_step": "tasks_completed"
+            "current_step": "tasks_completed",
+            "websearch_results": graph_state.get("websearch_results", {})
         }
-    
+
     def synthesize_final_response(state: OrchestratorState) -> OrchestratorState:
         """Synthesize responses from all agents into a final response."""
         start_time = time.time()
