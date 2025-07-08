@@ -32,7 +32,7 @@ class WebSearchAgent:
         logger.info("Checking company about page", company_name=company_name)
         
         task_prompt = f"""
-        Using the tools availeble to you find and analyze the about page for {company_name}.
+        Using the tools available to you find and analyze the about page for {company_name}.
         
         Search for: "{company_name} about us" or "{company_name} company about"
         
