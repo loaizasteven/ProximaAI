@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Annotated
+from typing import List, Dict, Any, Annotated, Optional
 from typing_extensions import TypedDict
 import operator
 
@@ -66,6 +66,7 @@ class OrchestratorStateMultiAgent(TypedDict):
     websearch_results: Annotated[WebSearchResults, select_first]  # Web search research results
     final_response: Annotated[str, select_first]
     current_step: Annotated[str, select_first]
+    user_id: Annotated[Optional[str], select_first]
 
 class AgentSpec(TypedDict):
         state: OrchestratorState
