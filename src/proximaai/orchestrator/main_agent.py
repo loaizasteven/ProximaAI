@@ -2,7 +2,7 @@ from langchain.chat_models import init_chat_model
 from langgraph.types import Send
 from langgraph.graph import StateGraph, END, START
 from langgraph.prebuilt import create_react_agent
-from typing import Dict, List, Any, TypedDict, Annotated
+from typing import Dict, List, Any, Annotated
 from dataclasses import dataclass
 import json
 import asyncio
@@ -12,11 +12,16 @@ import uuid
 from pydantic import BaseModel, Field
 from langchain.output_parsers import PydanticOutputParser
 import time
+from typing_extensions import TypedDict
 
-from proximaai.utils.structured_output import ReasoningPlan, AgentPlan, OrchestratorStateMultiAgent as OrchestratorState, AgentSpec
+from proximaai.utils.structured_output import ReasoningPlan, AgentPlan, OrchestratorStateMultiAgent, AgentSpec, WebSearchResults
+
+# Create alias for compatibility
+OrchestratorState = OrchestratorStateMultiAgent
 from proximaai.prebuilt.prompt_templates import PromptTemplates
 from proximaai.tools.tool_registry import ToolRegistry
 from proximaai.tools.agent_builder import AgentBuilder
+from proximaai.agents.websearch_agent import create_websearch_agent
 from proximaai.utils.logger import get_logger, setup_logging
 
 from proximaai.prebuilt.prompt_templates import PromptTemplates
@@ -39,7 +44,7 @@ tools = tool_registry.get_all_tools()
 agent_builder = AgentBuilder({tool.name: tool for tool in tools})
 tools.append(agent_builder)
 
-def create_orchestrator_agent():
+async def create_orchestrator_agent():
     """Create the main orchestrator agent with reasoning and planning capabilities."""
     
     def analyze_request(state: OrchestratorState) -> OrchestratorState:
@@ -81,6 +86,50 @@ def create_orchestrator_agent():
             "plan": [step.model_dump() for step in reasoning_data.plan],
             "current_step": "reasoning_complete"
         }
+    
+    async def websearch_research(state: OrchestratorState) -> OrchestratorState:
+        """Perform web search research based on the user request."""
+        logger.log_step("websearch_research", {"user_message_length": len(state["messages"][-1]["content"]) if state["messages"] else 0})
+        
+        messages = state["messages"]
+        user_message = messages[-1]["content"] if messages else ""
+        reasoning = state.get("reasoning", "")
+        
+        # Create web search agent
+        websearch_agent = create_websearch_agent()
+        
+        # Initialize the websearch agent
+        await websearch_agent.initialize()
+        
+        try:
+            # Extract company name from user message (simple approach)
+            user_message_lower = user_message.lower()
+            company_name = "Geico"  # Default to Geico for now TODO: Make this dynamic
+            
+            # Execute company about page check
+            search_result = await websearch_agent.check_company_about_page(company_name)
+            
+            logger.info("🔍 WEB SEARCH RESEARCH COMPLETED")
+            
+            return {
+                **state,
+                "websearch_results": search_result,
+                "current_step": "websearch_complete"
+            }
+            
+        except Exception as e:
+            logger.error("Web search research failed", error=str(e))
+            
+            return {
+                **state,
+                "websearch_results": WebSearchResults(
+                    company=company_name,
+                    agent_response="",
+                    tool_response=f"Error performing web research: {str(e)}",
+                    intermediate_steps=[]
+                ),
+                "current_step": "websearch_failed"
+            }
     
     def create_specialized_agents(state: OrchestratorState) -> OrchestratorState:
         """Create specialized agents based on the plan."""
@@ -167,7 +216,8 @@ def create_orchestrator_agent():
     
     def define_agent_graph_nodes(state: OrchestratorState):
         created_agents = state["created_agents"]
-        return [Send("run_agent", {"state": state, "agent_spec": agent_info["agent_spec"], "agent_id": agent_info["agent_id"]}) for agent_info in created_agents]
+        max_agents_to_run = state.get("max_agents_to_run", 2)  # Default to 2 agents if not specified
+        return [Send("run_agent", {"state": state, "agent_spec": agent_info["agent_spec"], "agent_id": agent_info["agent_id"]}) for agent_info in created_agents[:max_agents_to_run]]
 
     class AgentSpec(TypedDict):
         state: OrchestratorState
@@ -299,6 +349,7 @@ def create_orchestrator_agent():
         logger.log_step("synthesize_final_response", {"agent_results_count": len(state["agent_results"])})
         
         agent_results = state["agent_results"]
+        websearch_results = state.get("websearch_results", {})
         user_message = state["messages"][-1]["content"] if state["messages"] else ""
         reasoning = state["reasoning"]
         
@@ -312,13 +363,16 @@ def create_orchestrator_agent():
         ORCHESTRATOR REASONING:
         {reasoning}
 
+        WEB SEARCH RESEARCH:
+        {json.dumps(websearch_results, indent=2)}
+
         AGENT RESPONSES:
         {json.dumps(agent_results, indent=2)}
 
-        Your task is to synthesize all the agent responses into a comprehensive, well-structured final response that:
+        Your task is to synthesize all the agent responses and web search research into a comprehensive, well-structured final response that:
         1. Addresses the user's original request completely
-        2. Integrates insights from all specialized agents
-        3. Provides actionable recommendations
+        2. Integrates insights from web search research and all specialized agents
+        3. Provides actionable recommendations based on current market information
         4. Maintains a professional and helpful tone
 
         Provide your final synthesized response:
@@ -344,13 +398,17 @@ def create_orchestrator_agent():
     
     # Add nodes
     workflow.add_node("analyze_request", analyze_request)
+    workflow.add_node("websearch_research", websearch_research)
     workflow.add_node("create_agents", create_specialized_agents)
     workflow.add_node("run_agent", run_agent)
     workflow.add_node("synthesize_response", synthesize_final_response)
     
     # Add edges
     workflow.add_edge(START, "analyze_request")
+    workflow.add_edge(START, "websearch_research")
+    # workflow.add_edge("analyze_request", "websearch_research")
     workflow.add_edge("analyze_request", "create_agents")
+    workflow.add_edge("websearch_research", "synthesize_response")
 
     #Dynamic Conditional Edges
     workflow.add_conditional_edges("create_agents", define_agent_graph_nodes, ["run_agent"])
@@ -359,8 +417,6 @@ def create_orchestrator_agent():
     
     return workflow.compile()
 
-# Create the orchestrator
-orchestrator = create_orchestrator_agent()
 
 def format_response(response):
     """Format the orchestrator response for better readability."""
@@ -375,21 +431,25 @@ def format_response(response):
                     current_step=response.get('current_step', 'unknown'))
 
 if __name__ == "__main__":
-    conversation = {
-        "messages": [
-            {"role": "user", "content": "I want to apply for a job at Meta. I have a resume that I need to optimize for the job and understand if I meet all qualifications.\nGoogle's job description is:ML Engineer with 3+ years of experience in machine learning and deep learning.\n My Resume is:Education:Bachelor of Science in Computer Science Experience:3+ years of experience in machine learning and deep learning"}
-        ],
-        "reasoning": "",
-        "plan": [],
-        "created_agents": [],
-        "agent_results": {},
-        "final_response": "",
-        "current_step": "start"
-    }
+    async def main():
+        conversation = {
+            "messages": [
+                {"role": "user", "content": "I want to apply for a job at Meta. I have a resume that I need to optimize for the job and understand if I meet all qualifications.\nGoogle's job description is:ML Engineer with 3+ years of experience in machine learning and deep learning.\n My Resume is:Education:Bachelor of Science in Computer Science Experience:3+ years of experience in machine learning and deep learning"}
+            ],
+            "reasoning": "",
+            "plan": [],
+            "created_agents": [],
+            "agent_results": {},
+            "final_response": "",
+            "current_step": "start"
+        }
+        
+        logger.info("🚀 Starting ProximaAI Multi-Agent Orchestrator...")
+        logger.info("📝 User Request: Resume analysis and job application optimization")
+        
+        orchestrator = await create_orchestrator_agent()
+        response = orchestrator.invoke(conversation)
+        format_response(response)
     
-    logger.info("🚀 Starting ProximaAI Multi-Agent Orchestrator...")
-    logger.info("📝 User Request: Resume analysis and job application optimization")
-    
-    response = orchestrator.invoke(conversation)
-    format_response(response)
+    asyncio.run(main())
     

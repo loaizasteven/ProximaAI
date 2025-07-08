@@ -9,6 +9,7 @@ from proximaai.tools.web_search import WebSearchTool, CompanyResearchTool
 from proximaai.tools.resume_tools import ResumeParserTool, ResumeOptimizerTool
 from proximaai.tools.career_coaching import CareerAdvisorTool, InterviewPreparationTool, SkillDevelopmentTool
 from proximaai.tools.job_search import JobSearchTool, JobAnalyzerTool, ApplicationTrackerTool
+from proximaai.tools.perplexity_search import PerplexityWebSearchTool
 from proximaai.utils.logger import get_logger
 
 logger = get_logger("tool_registry")
