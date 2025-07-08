@@ -104,12 +104,9 @@ async def create_orchestrator_agent():
                 return {
                     **state,
                     "websearch_results": WebSearchResults(
-                        company=company_name,
-                        agent_response=memory,
-                        tool_response=f"None",
-                        intermediate_steps={"cache_hit": True}
+                        **memory
                     ),
-                    "current_step": "websearch_complete"
+                    "current_step": "websearch_complete_cache"
                 }
                 
                 
