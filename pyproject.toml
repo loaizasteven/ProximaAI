@@ -15,7 +15,9 @@ dependencies = [
     "langchain[anthropic]>=0.3.26",
     "langgraph>=0.4.9",
     "langgraph-cli[inmem]>=0.3.3",
+    "langmem>=0.0.27",
     "mcp[cli]>=1.9.4",
+    "supabase>=2.16.0",
 ]
 
 [tool.hatch.build.targets.wheel]
