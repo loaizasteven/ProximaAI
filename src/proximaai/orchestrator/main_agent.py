@@ -216,7 +216,8 @@ async def create_orchestrator_agent():
     
     def define_agent_graph_nodes(state: OrchestratorState):
         created_agents = state["created_agents"]
-        return [Send("run_agent", {"state": state, "agent_spec": agent_info["agent_spec"], "agent_id": agent_info["agent_id"]}) for agent_info in created_agents[:2]]
+        max_agents_to_run = state.get("max_agents_to_run", 2)  # Default to 2 agents if not specified
+        return [Send("run_agent", {"state": state, "agent_spec": agent_info["agent_spec"], "agent_id": agent_info["agent_id"]}) for agent_info in created_agents[:max_agents_to_run]]
 
     class AgentSpec(TypedDict):
         state: OrchestratorState
