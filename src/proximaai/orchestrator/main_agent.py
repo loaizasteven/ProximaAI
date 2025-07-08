@@ -1,20 +1,14 @@
 from langchain.chat_models import init_chat_model
 from langgraph.types import Send
 from langgraph.graph import StateGraph, END, START
-from langgraph.prebuilt import create_react_agent
-from typing import Dict, List, Any, Annotated
-from dataclasses import dataclass
+from typing import Any
 import json
 import asyncio
-from datetime import datetime
-import re
 import uuid
-from pydantic import BaseModel, Field
-from langchain.output_parsers import PydanticOutputParser
 import time
 from typing_extensions import TypedDict
 
-from proximaai.utils.structured_output import ReasoningPlan, AgentPlan, OrchestratorStateMultiAgent, AgentSpec, WebSearchResults
+from proximaai.utils.structured_output import ReasoningPlan, OrchestratorStateMultiAgent, AgentSpec, WebSearchResults
 
 # Create alias for compatibility
 OrchestratorState = OrchestratorStateMultiAgent
@@ -22,7 +16,7 @@ from proximaai.prebuilt.prompt_templates import PromptTemplates
 from proximaai.tools.tool_registry import ToolRegistry
 from proximaai.tools.agent_builder import AgentBuilder
 from proximaai.agents.websearch_agent import create_websearch_agent
-from proximaai.utils.logger import get_logger, setup_logging
+from proximaai.utils.logger import setup_logging
 
 from proximaai.prebuilt.prompt_templates import PromptTemplates
 
@@ -218,11 +212,6 @@ async def create_orchestrator_agent():
         created_agents = state["created_agents"]
         max_agents_to_run = state.get("max_agents_to_run", 2)  # Default to 2 agents if not specified
         return [Send("run_agent", {"state": state, "agent_spec": agent_info["agent_spec"], "agent_id": agent_info["agent_id"]}) for agent_info in created_agents[:max_agents_to_run]]
-
-    class AgentSpec(TypedDict):
-        state: OrchestratorState
-        agent_spec: Any
-        agent_id: Any
 
     def run_agent(state: AgentSpec) -> OrchestratorState:
         """Execute tasks with the created agents in parallel."""
