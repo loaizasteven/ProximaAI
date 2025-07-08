@@ -330,7 +330,8 @@ async def create_orchestrator_agent():
             **graph_state,
             "agent_results": agent_results,
             "current_step": "tasks_completed",
-            "websearch_results": graph_state.get("websearch_results", {})
+            "websearch_results": graph_state.get("websearch_results", {}),
+            "user_id": graph_state.get("user_id", None)
         }
 
     def synthesize_final_response(state: OrchestratorState) -> OrchestratorState:
