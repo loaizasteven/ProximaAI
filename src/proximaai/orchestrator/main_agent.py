@@ -1,14 +1,19 @@
 from langchain.chat_models import init_chat_model
 from langgraph.types import Send
 from langgraph.graph import StateGraph, END, START
-from typing import Any
+
 import json
 import asyncio
 import uuid
 import time
-from typing_extensions import TypedDict
+import os
 
+from typing import Any
+from typing_extensions import TypedDict
 from proximaai.utils.structured_output import ReasoningPlan, OrchestratorStateMultiAgent, AgentSpec, WebSearchResults
+
+from langchain_core.load.load import loads
+from langchain.load.dump import dumps
 
 # Create alias for compatibility
 OrchestratorState = OrchestratorStateMultiAgent
@@ -18,7 +23,7 @@ from proximaai.tools.agent_builder import AgentBuilder
 from proximaai.agents.websearch_agent import create_websearch_agent
 from proximaai.utils.logger import setup_logging
 
-from proximaai.prebuilt.prompt_templates import PromptTemplates
+from langgraph.store.postgres.aio import AsyncPostgresStore
 
 # Setup logging
 logger = setup_logging(level="INFO")
@@ -83,47 +88,80 @@ async def create_orchestrator_agent():
     
     async def websearch_research(state: OrchestratorState) -> OrchestratorState:
         """Perform web search research based on the user request."""
-        logger.log_step("websearch_research", {"user_message_length": len(state["messages"][-1]["content"]) if state["messages"] else 0})
-        
-        messages = state["messages"]
-        user_message = messages[-1]["content"] if messages else ""
-        reasoning = state.get("reasoning", "")
-        
-        # Create web search agent
-        websearch_agent = create_websearch_agent()
-        
-        # Initialize the websearch agent
-        await websearch_agent.initialize()
-        
-        try:
-            # Extract company name from user message (simple approach)
-            user_message_lower = user_message.lower()
+        async with AsyncPostgresStore.from_conn_string(os.getenv("DB_URI", "")) as store:
             company_name = "Geico"  # Default to Geico for now TODO: Make this dynamic
+            # Set Up Store - Postgres
+            await store.setup()
+            namespace = (f"websearch_research", state.get("user_id") or str(uuid.uuid4()))
+
+            # Check Persisted Cache Web Search Results
+            cache_results = await store.aget(namespace=namespace, key=f"cache_results_{company_name}")
+            if cache_results:
+                logger.info("🔍 WEB SEARCH RESEARCH CACHE HIT", cache_results=cache_results)
+                logger.info("🔍 WEB SEARCH RESEARCH CACHE HIT", cache_results=type(cache_results))
+                memory = loads(cache_results.value["data"])
+
+                return {
+                    **state,
+                    "websearch_results": WebSearchResults(
+                        company=company_name,
+                        agent_response=memory,
+                        tool_response=f"None",
+                        intermediate_steps={"cache_hit": True}
+                    ),
+                    "current_step": "websearch_complete"
+                }
+                
+                
+            # Run Web Search Research
+            logger.log_step("websearch_research", {"user_message_length": len(state["messages"][-1]["content"]) if state["messages"] else 0})
             
-            # Execute company about page check
-            search_result = await websearch_agent.check_company_about_page(company_name)
+            messages = state["messages"]
+            user_message = messages[-1]["content"] if messages else ""
+            reasoning = state.get("reasoning", "")
             
-            logger.info("🔍 WEB SEARCH RESEARCH COMPLETED")
+            # Create web search agent
+            websearch_agent = create_websearch_agent()
             
-            return {
-                **state,
-                "websearch_results": search_result,
-                "current_step": "websearch_complete"
-            }
+            # Initialize the websearch agent
+            await websearch_agent.initialize()
             
-        except Exception as e:
-            logger.error("Web search research failed", error=str(e))
-            
-            return {
-                **state,
-                "websearch_results": WebSearchResults(
-                    company=company_name,
-                    agent_response="",
-                    tool_response=f"Error performing web research: {str(e)}",
-                    intermediate_steps={}
-                ),
-                "current_step": "websearch_failed"
-            }
+            try:
+                # Extract company name from user message (simple approach)
+                user_message_lower = user_message.lower()
+                
+                
+                # Execute company about page check
+                search_result = await websearch_agent.check_company_about_page(company_name)
+                
+                logger.info("🔍 WEB SEARCH RESEARCH COMPLETED")
+                logger.info("Push results to Database")
+                await store.aput(
+                    namespace=namespace, 
+                    key=f"cache_results_{company_name}", 
+                    value={
+                        "data": dumps(search_result, ensure_ascii=False)
+                    }
+                    )
+                return {
+                    **state,
+                    "websearch_results": search_result,
+                    "current_step": "websearch_complete"
+                }
+                
+            except Exception as e:
+                logger.error("Web search research failed", error=str(e))
+                
+                return {
+                    **state,
+                    "websearch_results": WebSearchResults(
+                        company=company_name,
+                        agent_response="",
+                        tool_response=f"Error performing web research: {str(e)}",
+                        intermediate_steps={}
+                    ),
+                    "current_step": "websearch_failed"
+                }
     
     def create_specialized_agents(state: OrchestratorState) -> OrchestratorState:
         """Create specialized agents based on the plan."""
@@ -388,23 +426,23 @@ async def create_orchestrator_agent():
     workflow = StateGraph(OrchestratorState)
     
     # Add nodes
-    workflow.add_node("analyze_request", analyze_request)
+    # workflow.add_node("analyze_request", analyze_request)
     workflow.add_node("websearch_research", websearch_research)
-    workflow.add_node("create_agents", create_specialized_agents)
-    workflow.add_node("run_agent", run_agent)
-    workflow.add_node("synthesize_response", synthesize_final_response)
+    # workflow.add_node("create_agents", create_specialized_agents)
+    # workflow.add_node("run_agent", run_agent)
+    # workflow.add_node("synthesize_response", synthesize_final_response)
     
     # Add edges
-    workflow.add_edge(START, "analyze_request")
+    # workflow.add_edge(START, "analyze_request")
     workflow.add_edge(START, "websearch_research")
     # workflow.add_edge("analyze_request", "websearch_research")
-    workflow.add_edge("analyze_request", "create_agents")
-    workflow.add_edge("websearch_research", "synthesize_response")
+    # workflow.add_edge("analyze_request", "create_agents")
+    # workflow.add_edge("websearch_research", "synthesize_response")
 
     #Dynamic Conditional Edges
-    workflow.add_conditional_edges("create_agents", define_agent_graph_nodes, ["run_agent"])
-    workflow.add_edge("run_agent", "synthesize_response")
-    workflow.add_edge("synthesize_response", END)
+    # workflow.add_conditional_edges("create_agents", define_agent_graph_nodes, ["run_agent"])
+    # workflow.add_edge("run_agent", "synthesize_response")
+    # workflow.add_edge("synthesize_response", END)
     
     return workflow.compile()
 
