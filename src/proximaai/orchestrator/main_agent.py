@@ -120,7 +120,7 @@ async def create_orchestrator_agent():
                     company=company_name,
                     agent_response="",
                     tool_response=f"Error performing web research: {str(e)}",
-                    intermediate_steps=[]
+                    intermediate_steps={}
                 ),
                 "current_step": "websearch_failed"
             }
