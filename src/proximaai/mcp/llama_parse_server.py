@@ -37,11 +37,12 @@ async def parse_document(
         llama_parse = LlamaParse(organization_id=org_id, project_id=project_id)
 
         # Non-blocking file read
-        if isinstance(file_path, os.PathLike):
-            _type = Path(file_path).suffix
+        if isinstance(file_path, (str, os.PathLike)):
+            file_path = Path(file_path)  # Convert string paths to Path objects
+            _type = file_path.suffix
             assert _type == ".pdf", f"FileTypeError: extension {_type} is not supported"
             file_like = await file_to_bytesio(file_path)
-            file_name = file_path
+            file_name = str(file_path)  # Ensure file_name is a string
         else:
             file_like = file_path
             file_name = "default_resume.pdf"
