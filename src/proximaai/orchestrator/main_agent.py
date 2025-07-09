@@ -97,6 +97,11 @@ async def create_orchestrator_agent():
         
         async def websearch_research(state: OrchestratorState, config: RunnableConfig, *, store: BaseStore) -> OrchestratorState:
             """Perform web search research based on the user request."""
+            # Cache monitoring
+            request_id = str(uuid.uuid4())[:8]
+            execution_time = time.strftime("%H:%M:%S")
+            logger.info(f"🔄 WEBSEARCH NODE EXECUTION - Request ID: {request_id} | Time: {execution_time} | LangGraph Cache TTL: 1 second")
+            
             async with AsyncPostgresStore.from_conn_string(os.getenv("DB_URI", "")) as store:
                 company_name = "Geico"  # Default to Geico for now TODO: Make this dynamic
                 # Set Up Store - Postgres
@@ -432,7 +437,7 @@ async def create_orchestrator_agent():
         
         # Add nodes
         # workflow.add_node("analyze_request", analyze_request)
-        workflow.add_node("websearch_research", websearch_research, cache_policy=CachePolicy(ttl=300))
+        workflow.add_node("websearch_research", websearch_research, cache_policy=CachePolicy(ttl=5))
         # workflow.add_node("create_agents", create_specialized_agents)
         # workflow.add_node("run_agent", run_agent)
         # workflow.add_node("synthesize_response", synthesize_final_response)
@@ -483,11 +488,29 @@ if __name__ == "__main__":
         }
         
         logger.info("🚀 Starting ProximaAI Multi-Agent Orchestrator...")
-        logger.info("📝 User Request: Resume analysis and job application optimization")
         
         orchestrator = await create_orchestrator_agent()
-        response = await orchestrator.ainvoke(conversation)
-        format_response(response)
+        
+        # Use streaming to see cache metadata
+        logger.info("🔄 Streaming execution with cache monitoring...")
+        first_response = await orchestrator.ainvoke(conversation)
+        logger.info(f"📊 First response completed")
+        
+        # Wait for LangGraph cache to expire (TTL=N second)
+        logger.info("⏳ Waiting for LangGraph cache to expire (TTL=N second)...")
+        time.sleep(2)  # Wait 2 seconds (longer than TTL=N)
+        
+        logger.info("🔄 Second call after cache expiration...")
+        second_response = await orchestrator.ainvoke(conversation)
+        logger.info(f"📊 Second response completed")
+        
+        # Test streaming to see cache metadata
+        logger.info("🔄 Testing streaming for cache metadata...")
+        async for chunk in orchestrator.astream(conversation, stream_mode='updates'):
+            if '__metadata__' in chunk:
+                logger.info(f"🎯 Cache metadata found: {chunk['__metadata__']}")
+        
+        format_response(second_response)
     
     asyncio.run(main())
     
