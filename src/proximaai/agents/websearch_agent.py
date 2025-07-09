@@ -1,12 +1,9 @@
 from langgraph.prebuilt import create_react_agent
 from langchain.chat_models import init_chat_model
-from typing import Dict, Any, Union, Optional
-import asyncio
-import traceback
 from proximaai.tools.perplexity_search import PerplexityWebSearchTool
 from proximaai.utils.logger import get_logger
-
 from proximaai.utils.structured_output import WebSearchResults
+import traceback
 
 logger = get_logger("websearch_agent")
 
@@ -48,7 +45,7 @@ class WebSearchAgent:
                 company=company_name,
                 agent_response="Agent not initialized",
                 tool_response="Tool not initialized",
-                intermediate_steps=[]
+                intermediate_steps={}
             )
         
         response = await self.agent.ainvoke({
@@ -80,7 +77,7 @@ class WebSearchAgent:
                 company=company_name,
                 agent_response=f"agent_response: {agent_response}\n\nagent_pull_msg_error: {agent_pull_msg_error}",
                 tool_response=tool_response,
-                intermediate_steps=messages
+                intermediate_steps=response
             )
         except Exception as e:
             error_traceback = traceback.format_exc()
@@ -89,7 +86,7 @@ class WebSearchAgent:
                 company=company_name,
                 agent_response=f"Traceback:\n{error_traceback}",
                 tool_response="Error in websearch_agent",
-                intermediate_steps=messages
+                intermediate_steps=response
             )
 
 def create_websearch_agent(model_name: str = "anthropic:claude-3-7-sonnet-latest", temperature: float = 0.0) -> WebSearchAgent:

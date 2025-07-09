@@ -1,7 +1,6 @@
 from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Annotated
+from typing import List, Dict, Any, Annotated, Optional
 from typing_extensions import TypedDict
-import operator
 
 
 # Pydantic models for structured output
@@ -54,7 +53,7 @@ class WebSearchResults(TypedDict):
     company: str
     agent_response: str
     tool_response: str
-    intermediate_steps: List[Dict[str, Any]]
+    intermediate_steps: Dict[str, Any]
 
 class OrchestratorStateMultiAgent(TypedDict):
     # https://langchain-ai.github.io/langgraph/troubleshooting/errors/INVALID_CONCURRENT_GRAPH_UPDATE/
@@ -66,8 +65,10 @@ class OrchestratorStateMultiAgent(TypedDict):
     websearch_results: Annotated[WebSearchResults, select_first]  # Web search research results
     final_response: Annotated[str, select_first]
     current_step: Annotated[str, select_first]
+    user_id: Annotated[Optional[str], select_first]
 
 class AgentSpec(TypedDict):
         state: OrchestratorState
         agent_spec: Any
         agent_id: Any
+        
