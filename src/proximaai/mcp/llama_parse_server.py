@@ -54,7 +54,6 @@ async def parse_document(
             return text
         else:
             raise ValueError(f"Unexpected result type: {type(result)}")
-        return 
 
     except Exception as e:
         await ctx.error(f"Error parsing document: {str(e)}")
