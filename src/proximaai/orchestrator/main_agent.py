@@ -23,9 +23,13 @@ from proximaai.tools.agent_builder import AgentBuilder
 from proximaai.agents.websearch_agent import create_websearch_agent
 from proximaai.utils.logger import setup_logging
 
+# LongTerm Memory & Cache
 from langgraph.store.postgres.aio import AsyncPostgresStore
 from langgraph.store.base import BaseStore
 from langchain_core.runnables import RunnableConfig
+from langgraph.cache.memory import InMemoryCache
+from langgraph.types import CachePolicy
+
 
 # Setup logging
 logger = setup_logging(level="INFO")
@@ -428,7 +432,7 @@ async def create_orchestrator_agent():
         
         # Add nodes
         # workflow.add_node("analyze_request", analyze_request)
-        workflow.add_node("websearch_research", websearch_research)
+        workflow.add_node("websearch_research", websearch_research, cache_policy=CachePolicy(ttl=300))
         # workflow.add_node("create_agents", create_specialized_agents)
         # workflow.add_node("run_agent", run_agent)
         # workflow.add_node("synthesize_response", synthesize_final_response)
@@ -445,7 +449,10 @@ async def create_orchestrator_agent():
         # workflow.add_edge("run_agent", "synthesize_response")
         # workflow.add_edge("synthesize_response", END)
         
-        return workflow.compile(store=store)
+        return workflow.compile(
+            store=store,
+            cache=InMemoryCache()
+        )
 
 
 def format_response(response):
