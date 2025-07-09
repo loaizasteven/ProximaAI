@@ -6,6 +6,7 @@
     "env": "./.env",                                        
     "python_version": "3.11",
     "http": {
-        "app": "./src/proximaai/mcp/server.py:app"
+        "app": "./src/proximaai/mcp/server.py:app",
+        "timeout": 10000
     }
 }
