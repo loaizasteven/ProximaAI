@@ -1,5 +1,5 @@
 # Utility Functions
-This directory host utilty functions used throughout the project.
+This directory hosts utility functions used throughout the project.
 
 ## LangSmith Tracables
 LangSmith is a powerful tracing and observability tool for LLM applications, allowing you to monitor, debug, and analyze the execution of your language model pipelines. By default, LangSmith traces model invocations, tool calls, and agent steps, providing visibility into the flow and performance of your system.
