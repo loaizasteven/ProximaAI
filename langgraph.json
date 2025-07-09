@@ -4,5 +4,8 @@
       "main_agent": "./src/proximaai/orchestrator/main_agent.py:create_orchestrator_agent"            
     },
     "env": "./.env",                                        
-    "python_version": "3.11"
-  }
+    "python_version": "3.11",
+    "http": {
+        "app": "./src/proximaai/mcp/server.py:app"
+    }
+}
