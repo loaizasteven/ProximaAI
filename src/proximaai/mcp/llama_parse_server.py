@@ -23,7 +23,7 @@ async def file_to_bytesio(file_path):
 )
 async def parse_document(
     ctx: Context, 
-    file_path: str,
+    file_path: Union[os.PathLike, str, io.BytesIO],
     project_id: Union[str, None] = os.getenv("LLAMA_CLOUD_PROJECT_ID"),
     org_id: Union[str, None] = os.getenv("LLAMA_CLOUD_ORG_ID")
     ) -> Any:
@@ -36,9 +36,14 @@ async def parse_document(
         llama_parse = LlamaParse(organization_id=org_id, project_id=project_id)
 
         # Non-blocking file read
-        file_like = await file_to_bytesio(file_path)
-        result = await llama_parse.aparse(file_like, extra_info={"file_name": file_path.split("/")[-1]})
-
+        if isinstance(file_path, os.PathLike):
+            file_like = await file_to_bytesio(file_path)
+            file_name = file_path
+        else:
+            file_like = file_path
+            file_name = "default_resume.pdf"
+        result = await llama_parse.aparse(file_like, extra_info={"file_name": file_name})
+            
         if isinstance(result, JobResult):
             markdown = await result.aget_markdown_documents()
             text = [doc.text for doc in markdown]
