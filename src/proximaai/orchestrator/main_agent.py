@@ -499,7 +499,7 @@ if __name__ == "__main__":
         
         # Wait for LangGraph cache to expire (TTL=N second)
         logger.info("⏳ Waiting for LangGraph cache to expire (TTL=N second)...")
-        time.sleep(2)  # Wait 2 seconds (longer than TTL=N)
+        await asyncio.sleep(2)  # Wait 2 seconds (longer than TTL=N)
         
         logger.info("🔄 Second call after cache expiration...")
         second_response = await orchestrator.ainvoke(conversation)
