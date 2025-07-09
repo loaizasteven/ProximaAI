@@ -102,8 +102,7 @@ async def create_orchestrator_agent():
                 # Check Persisted Cache Web Search Results
                 cache_results = await store.aget(namespace=namespace, key=f"cache_results_{company_name}")
                 if cache_results:
-                    logger.info("🔍 WEB SEARCH RESEARCH CACHE HIT", cache_results=cache_results)
-                    logger.info("🔍 WEB SEARCH RESEARCH CACHE HIT", cache_results=type(cache_results))
+                    logger.info("🔍 WEB SEARCH RESEARCH CACHE HIT")
                     memory = loads(cache_results.value["data"])
 
                     return {
