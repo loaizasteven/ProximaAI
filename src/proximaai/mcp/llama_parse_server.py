@@ -57,7 +57,7 @@ async def parse_document(
 
     except Exception as e:
         await ctx.error(f"Error parsing document: {str(e)}")
-        return f"Error parsing document: {str(e)}"
+        return f"An error occurred while processing the document. Please try again later."
 
 # --- HTTP Streamable Server Startup ---
 if __name__ == "__main__":
