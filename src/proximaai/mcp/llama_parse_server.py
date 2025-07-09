@@ -1,7 +1,8 @@
+from pathlib import Path
 import os
 import io
 
-from typing import Any, Union, List
+from typing import Any, Union
 from mcp.server.fastmcp import FastMCP, Context
 from llama_cloud_services import LlamaParse
 from llama_cloud_services.parse.types import JobResult
@@ -37,6 +38,8 @@ async def parse_document(
 
         # Non-blocking file read
         if isinstance(file_path, os.PathLike):
+            _type = Path(file_path).suffix
+            assert _type == ".pdf", f"FileTypeError: extension {_type} is not supported"
             file_like = await file_to_bytesio(file_path)
             file_name = file_path
         else:
