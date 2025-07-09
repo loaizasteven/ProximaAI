@@ -106,10 +106,10 @@ async def create_orchestrator_agent():
                 company_name = "Geico"  # Default to Geico for now TODO: Make this dynamic
                 # Set Up Store - Postgres
                 await store.setup()
-                namespace = (f"websearch_research", state.get("user_id") or str(uuid.uuid4()))
+                namespace = (f"websearch_research", )
 
                 # Check Persisted Cache Web Search Results
-                cache_results = await store.aget(namespace=namespace, key=f"cache_results_{company_name}")
+                cache_results = await store.aget(namespace=namespace, key=f"cache_results_{company_name}", refresh_ttl=False)
                 if cache_results:
                     logger.info("🔍 WEB SEARCH RESEARCH CACHE HIT")
                     memory = loads(cache_results.value["data"])
@@ -151,8 +151,9 @@ async def create_orchestrator_agent():
                         key=f"cache_results_{company_name}", 
                         value={
                             "data": dumps(search_result, ensure_ascii=False)
-                        }
-                        )
+                        },
+                        ttl=10080 # 1 week
+                    )
                     return {
                         **state,
                         "websearch_results": search_result,
