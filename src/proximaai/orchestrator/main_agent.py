@@ -471,7 +471,8 @@ if __name__ == "__main__":
             "created_agents": [],
             "agent_results": {},
             "final_response": "",
-            "current_step": "start"
+            "current_step": "start",
+            "user_id": "test1a"
         }
         
         logger.info("🚀 Starting ProximaAI Multi-Agent Orchestrator...")
