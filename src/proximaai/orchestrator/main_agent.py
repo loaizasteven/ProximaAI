@@ -479,7 +479,7 @@ if __name__ == "__main__":
         logger.info("📝 User Request: Resume analysis and job application optimization")
         
         orchestrator = await create_orchestrator_agent()
-        response = orchestrator.invoke(conversation)
+        response = await orchestrator.ainvoke(conversation)
         format_response(response)
     
     asyncio.run(main())
