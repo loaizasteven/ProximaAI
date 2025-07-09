@@ -1,6 +1,6 @@
 import contextlib
 from fastapi import FastAPI
-from .math_server import mcp as math_mcp
+from proximaai.mcp.llama_parse_server import llama_parse_mcp
 import os
 
 
@@ -8,12 +8,12 @@ import os
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
     async with contextlib.AsyncExitStack() as stack:
-        await stack.enter_async_context(math_mcp.session_manager.run())
+        await stack.enter_async_context(llama_parse_mcp.session_manager.run())
         yield
 
 
 app = FastAPI(lifespan=lifespan)
-app.mount("/math", math_mcp.streamable_http_app())
+app.mount("/parse_document", llama_parse_mcp.streamable_http_app())
 
 
 if __name__ == "__main__":
