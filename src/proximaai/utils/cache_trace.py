@@ -26,4 +26,11 @@ async def traced_asearch(
     offset: int = 0, 
     refresh_ttl: bool | None = None
     ):
-    return await store.asearch(namespace, query=query)
+    return await store.asearch(
+        namespace, 
+        query=query, 
+        filter=filter, 
+        limit=limit, 
+        offset=offset, 
+        refresh_ttl=refresh_ttl
+    )
