@@ -50,6 +50,6 @@ class ResumeParsingAgent(BaseModel):
     ):
         # Make a call to MCP Server Health
         health_check = await self.mcp_server_health()
-        assert health_check.status_code == 200
+        assert health_check.status_code == 200, f"Error: {health_check.text}"
 
         return health_check.text
