@@ -1,6 +1,6 @@
 from httpx import request
 from pydantic import BaseModel, model_validator
-from typing import Union
+from typing import Union, Optional
 from urllib.parse import urljoin
 import json
 import io
@@ -42,12 +42,12 @@ class ResumeParsingAgent(BaseModel):
             
     async def invoke(
         self,
-        file: io.BytesIO,
+        file: Optional[io.BytesIO],
         project_id: Union[str, None] = os.getenv("LLAMA_CLOUD_PROJECT_ID"),
         org_id: Union[str, None] = os.getenv("LLAMA_CLOUD_ORG_ID")
     ):
-     # Make a call to MCP Server Health
-     health_check = await self.mcp_server_health()
-     assert health_check.status_code == 200
+        # Make a call to MCP Server Health
+        health_check = await self.mcp_server_health()
+        assert health_check.status_code == 200
 
-     return health_check.text
+        return health_check.text
