@@ -54,7 +54,15 @@ async def create_orchestrator_agent():
     async with AsyncPostgresStore.from_conn_string(os.getenv("DB_URI", "")) as store:
         await store.setup()
         
-            
+        async def resume_parse(state: OrchestratorState) -> OrchestratorState:
+            parse_agent = ResumeParsingAgent()
+            result = await parse_agent.invoke(None)
+
+            return {
+                **state,
+                'messages': [{'resume_parse_result': result}]
+                }
+
         def analyze_request(state: OrchestratorState) -> OrchestratorState:
             """Analyze the user request and create a reasoning plan."""
             start_time = time.time()
