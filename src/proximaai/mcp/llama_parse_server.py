@@ -3,6 +3,10 @@ import os
 import io
 
 from typing import Any, Union
+from fastapi.responses import JSONResponse, Response
+from fastapi import Request
+from fastapi import status
+
 from mcp.server.fastmcp import FastMCP, Context
 from llama_cloud_services import LlamaParse
 from llama_cloud_services.parse.types import JobResult
@@ -16,6 +20,15 @@ async def file_to_bytesio(file_path):
     async with aiofiles.open(file_path, 'rb') as f:
         content = await f.read()
     return io.BytesIO(content)
+
+@llama_parse_mcp.custom_route(
+    path="/health",
+    methods=["GET"],
+    name="health-check",
+    include_in_schema=True
+)
+async def health(request: Request)->Response:
+    return JSONResponse({"status": "ok"}, status_code=status.HTTP_200_OK)
 
 # --- Tool Registration using @mcp.tool Decorator ---
 @llama_parse_mcp.tool(
