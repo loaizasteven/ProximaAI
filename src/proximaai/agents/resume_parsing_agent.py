@@ -15,10 +15,12 @@ from proximaai.mcp import server
 class ResumeParsingAgent(BaseModel):
     @model_validator(mode='before')
     @classmethod
-    def api_key_validations(cls) -> None:
+    def api_key_validations(cls, values):
         if not os.getenv("LLAMA_CLOUD_API_KEY"):
          raise ValueError("LLAMA_CLOUD_API_KEY not set as environment variable in graph")
-    
+
+        return values
+        
     async def mcp_server_health(self, subpath:str="/parse_document/health") -> httpx.Response:
         server_base_url = os.getenv("LANGGRAPH_MCP_BASE_URL", "")
         if not server_base_url:
