@@ -4,8 +4,16 @@ Tool Registry - Manages all available tools for the ProximaAI system.
 
 from typing import Dict, List, Optional
 from langchain.tools import BaseTool
+from collections.abc import Mapping
+from langchain_mcp_adapters.sessions import Connection
+
+# Tools and MCP
 from proximaai.tools.agent_builder import AgentBuilder
+from langchain_mcp_adapters.client import MultiServerMCPClient
 from proximaai.tools.perplexity_search import PerplexityWebSearchTool
+from proximaai.mcp.server_connections import mcp_servers
+
+# Other imports
 from proximaai.utils.logger import get_logger
 
 logger = get_logger("tool_registry")
@@ -14,12 +22,30 @@ logger = get_logger("tool_registry")
 class ToolRegistry:
     """Registry for managing all available tools in the ProximaAI system."""
     
-    def __init__(self):
-        self.tools: Dict[str, BaseTool] = {}
+    def __init__(self, tools:Dict[str, BaseTool]={}):
+        self.tools = tools
+
         logger.info("Initializing ToolRegistry")
         self._initialize_tools()
         logger.info("ToolRegistry initialized", total_tools=len(self.tools))
     
+    @classmethod
+    async def async_init(cls, tools={}):
+        "Lazy/Deferred Tool Registration must be called after server is running. Fetch registry during tool binding on node"
+        instances = cls(tools)
+        async def get_mcp_tools(
+            mcp_connections: Mapping[str, Connection] = mcp_servers #Covariate type checking for subclasses
+        ):
+            logger.info("Fetching MCP Tools")
+            client = MultiServerMCPClient(dict(mcp_connections))
+            mcp_tools = await client.get_tools()
+            for tool in mcp_tools:
+                instances.tools[tool.name] = tool
+                
+        await get_mcp_tools()
+        logger.info("ToolRegistry with MCP", total_tools=len(instances.tools))
+        return instances
+
     def _initialize_tools(self):
         """Initialize all available tools."""
         logger.debug("Initializing tools")
