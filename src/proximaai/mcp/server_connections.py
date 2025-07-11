@@ -11,11 +11,13 @@ mcp_servers = dict(
     llamaParseServer=StreamableHttpConnection(
         transport="streamable_http",
         url=urljoin(server_base_url, "/parse_document/mcp"),
-        headers=dict(key="None"),
+        headers={
+            "Content-Type":"application/json"
+        },
         timeout=timedelta(seconds=30),
         sse_read_timeout=timedelta(seconds=30),
         terminate_on_close=False,
         session_kwargs=None,
         httpx_client_factory=None
-    ),
+    )
 )
