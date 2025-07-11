@@ -2,13 +2,9 @@
 Tool Registry - Manages all available tools for the ProximaAI system.
 """
 
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Optional
 from langchain.tools import BaseTool
 from proximaai.tools.agent_builder import AgentBuilder
-from proximaai.tools.web_search import WebSearchTool, CompanyResearchTool
-from proximaai.tools.resume_tools import ResumeParserTool, ResumeOptimizerTool
-from proximaai.tools.career_coaching import CareerAdvisorTool, InterviewPreparationTool, SkillDevelopmentTool
-from proximaai.tools.job_search import JobSearchTool, JobAnalyzerTool, ApplicationTrackerTool
 from proximaai.tools.perplexity_search import PerplexityWebSearchTool
 from proximaai.utils.logger import get_logger
 
