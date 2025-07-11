@@ -1,4 +1,5 @@
 from pathlib import Path
+import base64
 import os
 import io
 
@@ -37,7 +38,7 @@ async def health(request: Request)->Response:
 )
 async def parse_document(
     ctx: Context, 
-    file_path: Union[os.PathLike, str, io.BytesIO],
+    request: Union[os.PathLike, str, io.BytesIO, dict],
     project_id: Union[str, None] = os.getenv("LLAMA_CLOUD_PROJECT_ID"),
     org_id: Union[str, None] = os.getenv("LLAMA_CLOUD_ORG_ID")
     ) -> Any:
@@ -50,14 +51,24 @@ async def parse_document(
         llama_parse = LlamaParse(organization_id=org_id, project_id=project_id)
 
         # Non-blocking file read
-        if isinstance(file_path, (str, os.PathLike)):
-            file_path = Path(file_path)  # Convert string paths to Path objects
+        if isinstance(request, (str, os.PathLike)):
+            file_path = Path(request)  # Convert string paths to Path objects
             _type = file_path.suffix
             assert _type == ".pdf", f"FileTypeError: extension {_type} is not supported"
             file_like = await file_to_bytesio(file_path)
             file_name = str(file_path)  # Ensure file_name is a string
-        else:
-            file_like = file_path
+        elif isinstance(request, dict):
+            # # Read json content
+            # body = await request.json()
+            file_data = request.get("file_data")
+            if file_data is None:
+                raise ValueError("Missing 'file_data' in request")
+            # Extract information
+            file_bytes = base64.b64decode(file_data)
+            file_like = io.BytesIO(file_bytes)
+            file_name = request.get("file_name", "uploaded_file.pdf")
+        elif isinstance(request, io.BytesIO):
+            file_like = request
             file_name = "default_resume.pdf"
         result = await llama_parse.aparse(file_like, extra_info={"file_name": file_name})
             
