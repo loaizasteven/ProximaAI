@@ -1,5 +1,6 @@
 from pydantic import BaseModel
-from typing import Any, Union, Optional
+from typing import Any, Union, Optional, List
+import json
 
 import httpx
 import proximaai
@@ -76,3 +77,45 @@ class MCPCommunication(BaseModel):
             _ = await self._method_wrapper(data=data, timeout=timeout)
             
             return {"status": "ok"}
+    
+    @staticmethod
+    def parse_sse_json(response_text: str) -> dict[Any, Any]:
+        """
+        Extracts and parses all JSON objects from 'data:' lines in an SSE-formatted response.
+
+        Args:
+            response_text (str): The raw text from the HTTP response.
+
+        Returns:
+            List[Any]: A list of parsed JSON objects.
+        """
+        results = []
+        for line in response_text.splitlines():
+            if line.startswith('data:'):
+                json_str = line[len('data:'):].strip()
+                try:
+                    results.append(json.loads(json_str))
+                except json.JSONDecodeError:
+                    # Optionally, log or print the error and continue
+                    pass
+        return results[0]
+
+    async def tool_list(self, data: Optional[dict[str, Any]] = None, timeout: Optional[Union[int, float]] = None) -> list:
+            if not data:
+                data = {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "tools/list",
+                    "params": {}
+                }
+            
+            response = await self._method_wrapper(data=data, timeout=timeout)
+            if response:
+                formatted_response = self.parse_sse_json(response.text)
+                tools = await self.tool_list_parse(value=formatted_response)
+                return tools
+            else:
+                return []
+
+    async def tool_list_parse(self, value:dict)-> list:
+        return value["result"]["tools"]
