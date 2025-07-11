@@ -54,6 +54,7 @@ class MCPCommunication(BaseModel):
                 
                 if response.status_code == status.HTTP_200_OK:
                     self.mcp_server_token = response.headers.get("mcp-session-id")
+                    self.headers['mcp-session-id'] = self.mcp_server_token or ""
                 else:
                     response.raise_for_status()
             else:
