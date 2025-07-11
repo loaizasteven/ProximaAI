@@ -29,26 +29,8 @@ class ToolRegistry:
         logger.debug("Initializing tools")
         
         # Web Search Tools
-        self.tools["web_search"] = WebSearchTool()
-        self.tools["company_research"] = CompanyResearchTool()
+        self.tools["perplexity_research"] = PerplexityWebSearchTool()
         logger.debug("Web search tools initialized")
-        
-        # Resume Tools
-        self.tools["resume_parser"] = ResumeParserTool()
-        self.tools["resume_optimizer"] = ResumeOptimizerTool()
-        logger.debug("Resume tools initialized")
-        
-        # Career Coaching Tools
-        self.tools["career_advisor"] = CareerAdvisorTool()
-        self.tools["interview_preparer"] = InterviewPreparationTool()
-        self.tools["skill_developer"] = SkillDevelopmentTool()
-        logger.debug("Career coaching tools initialized")
-        
-        # Job Search Tools
-        self.tools["job_search"] = JobSearchTool()
-        self.tools["job_analyzer"] = JobAnalyzerTool()
-        self.tools["application_tracker"] = ApplicationTrackerTool()
-        logger.debug("Job search tools initialized")
         
         # Agent Builder (needs access to tool registry)
         self.tools["agent_builder"] = AgentBuilder(self.tools)
