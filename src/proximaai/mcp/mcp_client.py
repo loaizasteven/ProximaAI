@@ -43,7 +43,14 @@ class MCPCommunication(BaseModel):
                 },
                 "id": "initialize-1"
             }
-            if self.client:
+            response = await self._method_wrapper(data=data, timeout=timeout)
+            
+            if response:   
+                self.mcp_server_token = response.headers.get("mcp-session-id")
+                self.headers['mcp-session-id'] = self.mcp_server_token or ""
+
+    async def _method_wrapper(self, data: Optional[dict[str, Any]] = None, timeout: Optional[Union[int, float]] = None):
+        if self.client:
                 response = await self.client.post(
                     url=self.mcp_server_url, 
                     headers=self.headers, 
@@ -53,33 +60,19 @@ class MCPCommunication(BaseModel):
                     )
                 
                 if response.status_code == status.HTTP_200_OK:
-                    self.mcp_server_token = response.headers.get("mcp-session-id")
-                    self.headers['mcp-session-id'] = self.mcp_server_token or ""
+                    return response
                 else:
                     response.raise_for_status()
-            else:
-                raise ConnectionError("MCP client not started")
+        else:
+            raise ConnectionError("MCP client not started")
 
-    async def notification_initialization(self, data: Optional[dict[str, Any]] = None, timeout: Optional[Union[int, float]] = None):
+    async def notification_initialization(self, data: Optional[dict[str, Any]] = None, timeout: Optional[Union[int, float]] = None) -> dict:
             if not data:
                 data = {
                 "jsonrpc": "2.0",
                 "method": "notifications/initialized"
                 }
             
-            if self.client:
-                    response = await self.client.post(
-                        url=self.mcp_server_url, 
-                        headers=self.headers, 
-                        json=data, 
-                        follow_redirects=True,
-                        timeout=timeout
-                        )
-                    
-                    if response.status_code == status.HTTP_200_OK:
-                        print(response)
-                    else:
-                        response.raise_for_status()
-            else:
-                raise ConnectionError("MCP client not started")
+            _ = await self._method_wrapper(data=data, timeout=timeout)
             
+            return {"status": "ok"}
