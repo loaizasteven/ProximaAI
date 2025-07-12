@@ -118,4 +118,21 @@ class MCPCommunication(BaseModel):
                 return []
 
     async def tool_list_parse(self, value:dict)-> list:
+        #TODO Add class method for tools - structure output
         return value["result"]["tools"]
+
+    async def tool_call(self, params: Optional[dict] = None, data: Optional[dict[str, Any]] = None, timeout: Optional[Union[int, float]] = 60.0) -> Any:
+        if not data:
+            data = {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "tools/call",
+                "params": params 
+            }
+        
+        response = await self._method_wrapper(data=data, timeout=timeout)
+        if response:
+            formatted_response = self.parse_sse_json(response.text)
+            return formatted_response['result']
+        else:
+            return []
