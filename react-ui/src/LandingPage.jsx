@@ -56,11 +56,9 @@ function ProductCard({ reset }){
     }, [reset]);
 
     const handleResumeBuilderClick = () => {
-        alert('Learn more about Veloa Resume Builder');
+        alert('Veloa Resume Builder Coming Soon!');
     };
     const handleApplicationAssistantClick = () => {
-        console.log('Application Assistant button clicked');
-        alert('Learn more about Veloa Application Assistant');
         setShowLanding(false);
         setShowAssistant(true);
     };
