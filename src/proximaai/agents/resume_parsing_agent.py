@@ -1,18 +1,26 @@
-from httpx import request
 from pydantic import BaseModel, model_validator
-from typing import Union, Optional
-from urllib.parse import urljoin
+from typing import Optional, Any
 import json
 import io
 import os
 
+from proximaai.mcp.mcp_client import MCPCommunication
 from fastapi import status
+from urllib.parse import urljoin
 import httpx
 
-from proximaai.mcp import server
-
-
 class ResumeParsingAgent(BaseModel):
+    tool_name: str = "parse_document"
+    client: Optional[MCPCommunication] = None
+    model_config= {"arbitrary_types_allowed": True}
+
+    def model_post_init(self, context: Any, /) -> None:
+        server_base_url = os.getenv("LANGGRAPH_MCP_BASE_URL", "")
+        self.client = MCPCommunication(
+            mcp_server_url=urljoin(server_base_url, self.tool_name + "/mcp")
+        )
+        return super().model_post_init(context)
+
     @model_validator(mode='before')
     @classmethod
     def api_key_validations(cls, values):
@@ -45,11 +53,23 @@ class ResumeParsingAgent(BaseModel):
     async def invoke(
         self,
         file: Optional[io.BytesIO],
-        project_id: Union[str, None] = os.getenv("LLAMA_CLOUD_PROJECT_ID"),
-        org_id: Union[str, None] = os.getenv("LLAMA_CLOUD_ORG_ID")
-    ):
+        file_name: Optional[str],
+    ) -> Any:
         # Make a call to MCP Server Health
         health_check = await self.mcp_server_health()
         assert health_check.status_code == 200, health_check.raise_for_status
+        parameters = {
+                    "name": "parse_document",
+                    "arguments":{
+                        "request": {
+                            "file_data": file,
+                            "file_name": file_name or "resume.pdf"
+                        }
+                    }
+                }
+        if self.client:
+            result = await self.client.invoke(params=parameters, timeout=60.0)
+        else:
+            raise ConnectionError("MCP client is not open")
 
-        return health_check.text
+        return result
