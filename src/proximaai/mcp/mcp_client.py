@@ -1,3 +1,4 @@
+from optparse import Option
 from pydantic import BaseModel
 from typing import Any, Union, Optional, List
 import json
@@ -136,3 +137,12 @@ class MCPCommunication(BaseModel):
             return formatted_response['result']
         else:
             return []
+
+    async def invoke(self, params: Optional[dict] = None, data: Optional[dict[str, Any]] = None, timeout: Optional[Union[int, float]] = 60.0) -> Any:
+        """Invoke the MCP protocol lifecycle to run desired tool"""
+        await self.initialize()
+        _ = await self.notification_initialization()
+        result = await self.tool_call(params=params, data=data, timeout=timeout)
+
+        return result
+ 
