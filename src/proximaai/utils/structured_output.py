@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Annotated, Optional
 from typing_extensions import TypedDict
+import io
 
 
 # Pydantic models for structured output
@@ -15,6 +16,11 @@ class AgentPlan(BaseModel):
 class ReasoningPlan(BaseModel):
     reasoning: str = Field(description="Detailed reasoning about what needs to be done")
     plan: List[AgentPlan] = Field(description="List of steps in the execution plan")
+
+
+class ResumeParseStructure(TypedDict):
+    file_data: str
+    file_name: str
 
 # State definition for the orchestrator
 class OrchestratorState(TypedDict):
@@ -58,6 +64,7 @@ class WebSearchResults(TypedDict):
 class OrchestratorStateMultiAgent(TypedDict):
     # https://langchain-ai.github.io/langgraph/troubleshooting/errors/INVALID_CONCURRENT_GRAPH_UPDATE/
     messages: Annotated[List[Dict[str, Any]], select_first]
+    file_input: Annotated[ResumeParseStructure, select_first]
     reasoning: Annotated[str, select_first]
     plan: Annotated[List[Dict[str, Any]], select_first]
     created_agents: Annotated[List[Dict[str, Any]], select_first]
