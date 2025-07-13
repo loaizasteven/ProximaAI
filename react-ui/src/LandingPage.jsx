@@ -1,5 +1,6 @@
-import React from 'react';
-    import './LandingPage.css'
+import React, { useState } from 'react';
+import './LandingPage.css'
+import ApplicationAssistant from './pages/ApplicationAssistant';
 
 import logo from './assets/react.svg';
 
@@ -8,23 +9,19 @@ function TrackCard( {title, description, colorClass, icon, onLearnMore}) {
         <div className={`track-card ${colorClass}`}>
             <div className="track-content">
                 <h2>{title}</h2>
-                <p>{description}</p>
-                <button className={`learn-more ${colorClass}`} onClick={onLearnMore}>Learn more</button>
+                <p>{description}</p>                
             </div>
-            <div className="track-icon ">
-                <img src={icon} alt="logo" />
+            <div className="track-icon-and-button">
+                <div className="track-icon ">
+                    <img src={icon} alt="logo" />
+                </div>
+                <button className={`learn-more ${colorClass}`} onClick={onLearnMore}>Learn more</button>
             </div>
         </div>
     )
 }
 
-function ProductCard(){
-    const handleResumeBuilderClick = () => {
-        alert('Learn more about Resume Builder with Veloa');
-    };
-    const handleApplicationAssistantClick = () => {
-        alert('Learn more about Veloa Application Assistant');
-    };
+function LandingPageMain({ handleResumeBuilderClick, handleApplicationAssistantClick }){
     return (
         <div className="product-card">
             <TrackCard
@@ -46,13 +43,41 @@ function ProductCard(){
     )
 }
 
-const LandingPage = () => (
+function ProductCard({ reset }){
+    const [showAssistant, setShowAssistant] = useState(false);
+    const [showLanding, setShowLanding] = useState(true);
+
+    React.useEffect(() => {
+        if (reset) {
+            setShowLanding(true);
+            setShowAssistant(false);
+        }
+    }, [reset]);
+
+    const handleResumeBuilderClick = () => {
+        alert('Learn more about Veloa Resume Builder');
+    };
+    const handleApplicationAssistantClick = () => {
+        console.log('Application Assistant button clicked');
+        alert('Learn more about Veloa Application Assistant');
+        setShowLanding(false);
+        setShowAssistant(true);
+    };
+    return (
+        <>
+            {showLanding && <LandingPageMain handleResumeBuilderClick={handleResumeBuilderClick} handleApplicationAssistantClick={handleApplicationAssistantClick} />}
+            {showAssistant && <ApplicationAssistant />}
+        </>
+    );
+}
+
+const LandingPage = (reset) => (
   <>
   <div className="landing-page-headline">
       ProximaAI is an AI-powered job search and resume assistant inspired by Anthropic's multi-agent research system. It leverages multi-agent technology and the Lang ecosystem to accelerate your career journey.
   </div>
   <div className="product-card-container">
-    <ProductCard />
+    <ProductCard reset={reset}/>
   </div>
   </>
 
