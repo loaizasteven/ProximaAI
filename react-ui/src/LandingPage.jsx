@@ -48,6 +48,7 @@ function ProductCard({ reset }){
     const [showLanding, setShowLanding] = useState(true);
 
     React.useEffect(() => {
+        console.log("reset is %reset", reset)
         if (reset) {
             setShowLanding(true);
             setShowAssistant(false);
