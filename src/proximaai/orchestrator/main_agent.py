@@ -17,11 +17,17 @@ from langchain.load.dump import dumps
 
 # Create alias for compatibility
 OrchestratorState = OrchestratorStateMultiAgent
+
+# Tools
 from proximaai.prebuilt.prompt_templates import PromptTemplates
 from proximaai.tools.tool_registry import ToolRegistry
 from proximaai.tools.agent_builder import AgentBuilder
 from proximaai.agents.websearch_agent import create_websearch_agent
 from proximaai.utils.logger import setup_logging
+
+# Agents
+from proximaai.agents.websearch_agent import create_websearch_agent
+from proximaai.agents.resume_parsing_agent import ResumeParsingAgent
 
 # LongTerm Memory & Cache
 from langgraph.store.postgres.aio import AsyncPostgresStore
@@ -56,12 +62,14 @@ async def create_orchestrator_agent():
         
         async def resume_parse(state: OrchestratorState) -> OrchestratorState:
             parse_agent = ResumeParsingAgent()
-            result = await parse_agent.invoke(None)
-
-            return {
-                **state,
-                'messages': [{'resume_parse_result': result}]
-                }
+            file_input = state.get('file_input')
+            if file_input:
+                result = await parse_agent.invoke(**file_input)
+            else:
+                state['messages'].append({ "type": "agent", "content": "Unable to Parse Resume" })
+                return state
+            state['messages'].append({ "type": "agent", "content": result['content'][0]['text'] })
+            return state
 
         def analyze_request(state: OrchestratorState) -> OrchestratorState:
             """Analyze the user request and create a reasoning plan."""
