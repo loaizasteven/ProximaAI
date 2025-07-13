@@ -1,3 +1,4 @@
+from ast import Or
 from langchain.chat_models import init_chat_model
 from langgraph.types import Send
 from langgraph.graph import StateGraph, END, START
@@ -22,7 +23,6 @@ OrchestratorState = OrchestratorStateMultiAgent
 from proximaai.prebuilt.prompt_templates import PromptTemplates
 from proximaai.tools.tool_registry import ToolRegistry
 from proximaai.tools.agent_builder import AgentBuilder
-from proximaai.agents.websearch_agent import create_websearch_agent
 from proximaai.utils.logger import setup_logging
 
 # Agents
@@ -65,10 +65,11 @@ async def create_orchestrator_agent():
             file_input = state.get('file_input')
             if file_input:
                 result = await parse_agent.invoke(**file_input)
+                state['messages'].append({ "type": "agent", "content": result['content'][0]['text'] })
             else:
                 state['messages'].append({ "type": "agent", "content": "Unable to Parse Resume" })
-                return state
-            state['messages'].append({ "type": "agent", "content": result['content'][0]['text'] })
+
+            state['file_input']['file_data'] = "MASKED"            
             return state
 
         def analyze_request(state: OrchestratorState) -> OrchestratorState:
@@ -454,22 +455,23 @@ async def create_orchestrator_agent():
         workflow = StateGraph(OrchestratorState)
         
         # Add nodes
-        workflow.add_node("analyze_request", analyze_request)
-        workflow.add_node("websearch_research", websearch_research, cache_policy=CachePolicy(ttl=5))
-        workflow.add_node("create_agents", create_specialized_agents)
-        workflow.add_node("run_agent", run_agent)
-        workflow.add_node("synthesize_response", synthesize_final_response)
+        # workflow.add_node("analyze_request", analyze_request)
+        # workflow.add_node("websearch_research", websearch_research, cache_policy=CachePolicy(ttl=5))
+        # workflow.add_node("create_agents", create_specialized_agents)
+        # workflow.add_node("run_agent", run_agent)
+        # workflow.add_node("synthesize_response", synthesize_final_response)
+        workflow.add_node("Resume_Parsing_Agent", resume_parse)
         
         # Add edges
-        # workflow.add_edge(START, "analyze_request")
-        workflow.add_edge(START, "websearch_research")
-        workflow.add_edge("analyze_request", "websearch_research")
-        workflow.add_edge("analyze_request", "create_agents")
+        workflow.add_edge(START, "Resume_Parsing_Agent")
+        # workflow.add_edge(START, "websearch_research")
+        # workflow.add_edge("analyze_request", "websearch_research")
+        # workflow.add_edge("analyze_request", "create_agents")
         # workflow.add_edge("websearch_research", "synthesize_response")
 
         #Dynamic Conditional Edges
-        workflow.add_conditional_edges("create_agents", define_agent_graph_nodes, ["run_agent"])
-        workflow.add_edge("run_agent", "synthesize_response")
+        # workflow.add_conditional_edges("create_agents", define_agent_graph_nodes, ["run_agent"])
+        # workflow.add_edge("run_agent", "synthesize_response")
         # workflow.add_edge("synthesize_response", END)
         
         return workflow.compile(
