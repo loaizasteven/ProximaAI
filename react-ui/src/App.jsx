@@ -16,6 +16,7 @@ import { useStream } from "@langchain/langgraph-sdk/react";
 function App() {
   const [enter, setEnter] = useState(false)
   const [currentPage, setCurrentPage] = useState('welcome')
+  const [resetDock, setResetDock] = useState(false)
 
   const items = [
     { icon: <VscHome size={18} color="white"/>, label: 'Home', onClick: () => { setCurrentPage('main'); setResetDock(true); } },
