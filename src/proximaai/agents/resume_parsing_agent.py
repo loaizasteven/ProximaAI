@@ -52,7 +52,7 @@ class ResumeParsingAgent(BaseModel):
             
     async def invoke(
         self,
-        file: Optional[io.BytesIO],
+        file_data: Optional[str],
         file_name: Optional[str],
     ) -> Any:
         # Make a call to MCP Server Health
@@ -62,7 +62,7 @@ class ResumeParsingAgent(BaseModel):
                     "name": "parse_document",
                     "arguments":{
                         "request": {
-                            "file_data": file,
+                            "file_data": file_data,
                             "file_name": file_name or "resume.pdf"
                         }
                     }
