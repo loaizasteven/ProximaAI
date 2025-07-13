@@ -1,15 +1,15 @@
 import React from 'react';
-import './LandingPage.css'
+    import './LandingPage.css'
 
 import logo from './assets/react.svg';
 
-function TrackCard( {title, description, colorClass, icon}) {
+function TrackCard( {title, description, colorClass, icon, onLearnMore}) {
     return (
         <div className={`track-card ${colorClass}`}>
             <div className="track-content">
                 <h2>{title}</h2>
                 <p>{description}</p>
-                <button className={`learn-more ${colorClass}`}>Learn more</button>
+                <button className={`learn-more ${colorClass}`} onClick={onLearnMore}>Learn more</button>
             </div>
             <div className="track-icon ">
                 <img src={icon} alt="logo" />
@@ -19,6 +19,12 @@ function TrackCard( {title, description, colorClass, icon}) {
 }
 
 function ProductCard(){
+    const handleResumeBuilderClick = () => {
+        alert('Learn more about Resume Builder with Veloa');
+    };
+    const handleApplicationAssistantClick = () => {
+        alert('Learn more about Veloa Application Assistant');
+    };
     return (
         <div className="product-card">
             <TrackCard
@@ -26,6 +32,7 @@ function ProductCard(){
                 description="Start with a blank canvas and let Veloa guide you through the process of creating a professional resume."
                 colorClass="blue"
                 icon={logo}
+                onLearnMore={handleResumeBuilderClick}
             />
             <TrackCard
                 title="Veloa Application Assistant"
@@ -33,6 +40,7 @@ function ProductCard(){
                 apply to them, and follow up with the hiring manager."
                 colorClass="purple"
                 icon={logo}
+                onLearnMore={handleApplicationAssistantClick}
             />
         </div>
     )
