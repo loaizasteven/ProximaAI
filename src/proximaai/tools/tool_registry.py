@@ -2,14 +2,18 @@
 Tool Registry - Manages all available tools for the ProximaAI system.
 """
 
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Optional
 from langchain.tools import BaseTool
+from collections.abc import Mapping
+from langchain_mcp_adapters.sessions import Connection
+
+# Tools and MCP
 from proximaai.tools.agent_builder import AgentBuilder
-from proximaai.tools.web_search import WebSearchTool, CompanyResearchTool
-from proximaai.tools.resume_tools import ResumeParserTool, ResumeOptimizerTool
-from proximaai.tools.career_coaching import CareerAdvisorTool, InterviewPreparationTool, SkillDevelopmentTool
-from proximaai.tools.job_search import JobSearchTool, JobAnalyzerTool, ApplicationTrackerTool
+from langchain_mcp_adapters.client import MultiServerMCPClient
 from proximaai.tools.perplexity_search import PerplexityWebSearchTool
+from proximaai.mcp.server_connections import mcp_servers
+
+# Other imports
 from proximaai.utils.logger import get_logger
 
 logger = get_logger("tool_registry")
@@ -18,37 +22,37 @@ logger = get_logger("tool_registry")
 class ToolRegistry:
     """Registry for managing all available tools in the ProximaAI system."""
     
-    def __init__(self):
-        self.tools: Dict[str, BaseTool] = {}
+    def __init__(self, tools: Optional[Dict[str, BaseTool]] = None):
+        self.tools = tools if tools is not None else {}
+
         logger.info("Initializing ToolRegistry")
         self._initialize_tools()
         logger.info("ToolRegistry initialized", total_tools=len(self.tools))
     
+    @classmethod
+    async def async_init(cls, tools: Optional[Dict[str, BaseTool]] = None):
+        "Lazy/Deferred Tool Registration must be called after server is running. Fetch registry during tool binding on node"
+        instances = cls(tools if tools is not None else {})
+        async def get_mcp_tools(
+            mcp_connections: Mapping[str, Connection] = mcp_servers #Covariate type checking for subclasses
+        ):
+            logger.info("Fetching MCP Tools")
+            client = MultiServerMCPClient(dict(mcp_connections))
+            mcp_tools = await client.get_tools()
+            for tool in mcp_tools:
+                instances.tools[tool.name] = tool
+                
+        await get_mcp_tools()
+        logger.info("ToolRegistry with MCP", total_tools=len(instances.tools))
+        return instances
+
     def _initialize_tools(self):
         """Initialize all available tools."""
         logger.debug("Initializing tools")
         
         # Web Search Tools
-        self.tools["web_search"] = WebSearchTool()
-        self.tools["company_research"] = CompanyResearchTool()
+        self.tools["perplexity_research"] = PerplexityWebSearchTool()
         logger.debug("Web search tools initialized")
-        
-        # Resume Tools
-        self.tools["resume_parser"] = ResumeParserTool()
-        self.tools["resume_optimizer"] = ResumeOptimizerTool()
-        logger.debug("Resume tools initialized")
-        
-        # Career Coaching Tools
-        self.tools["career_advisor"] = CareerAdvisorTool()
-        self.tools["interview_preparer"] = InterviewPreparationTool()
-        self.tools["skill_developer"] = SkillDevelopmentTool()
-        logger.debug("Career coaching tools initialized")
-        
-        # Job Search Tools
-        self.tools["job_search"] = JobSearchTool()
-        self.tools["job_analyzer"] = JobAnalyzerTool()
-        self.tools["application_tracker"] = ApplicationTrackerTool()
-        logger.debug("Job search tools initialized")
         
         # Agent Builder (needs access to tool registry)
         self.tools["agent_builder"] = AgentBuilder(self.tools)

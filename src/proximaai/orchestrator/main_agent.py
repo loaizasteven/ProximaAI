@@ -17,11 +17,16 @@ from langchain.load.dump import dumps
 
 # Create alias for compatibility
 OrchestratorState = OrchestratorStateMultiAgent
+
+# Tools
 from proximaai.prebuilt.prompt_templates import PromptTemplates
 from proximaai.tools.tool_registry import ToolRegistry
 from proximaai.tools.agent_builder import AgentBuilder
-from proximaai.agents.websearch_agent import create_websearch_agent
 from proximaai.utils.logger import setup_logging
+
+# Agents
+from proximaai.agents.websearch_agent import create_websearch_agent
+from proximaai.agents.resume_parsing_agent import ResumeParsingAgent
 
 # LongTerm Memory & Cache
 from langgraph.store.postgres.aio import AsyncPostgresStore
@@ -54,7 +59,45 @@ async def create_orchestrator_agent():
     async with AsyncPostgresStore.from_conn_string(os.getenv("DB_URI", "")) as store:
         await store.setup()
         
-            
+        async def resume_parse(state: OrchestratorState) -> OrchestratorState:
+            async with AsyncPostgresStore.from_conn_string(os.getenv("DB_URI", "")) as store:
+                # Set Up Store - Postgres
+                await store.setup()
+                namespace = (state['user_id'] or 'unknown', 'resume_parse')
+                # Pull request input
+                file_input = state.get('file_input')
+
+                # Check Cache
+                import hashlib
+                _key = hashlib.sha256(file_input.get('file_data').encode('utf-8')).hexdigest()
+                cache_results = await store.aget(namespace=namespace, key=f"{_key}", refresh_ttl=False)
+                if cache_results:
+                    logger.info("🔍 RESUME PARSE CACHE HIT")
+                    memory = loads(cache_results.value["data"])
+                    state['messages'].append({ "type": "agent", "content": memory['content'][0]['text'] })
+                else:
+                    # Parsing Agent
+                    parse_agent = ResumeParsingAgent()
+                    file_input = state.get('file_input')
+                    if file_input:
+                        result = await parse_agent.invoke(**file_input)
+                        state['messages'].append({ "type": "agent", "content": result['content'][0]['text'] })
+                    else:
+                        state['messages'].append({ "type": "agent", "content": "Unable to Parse Resume" })           
+
+                    logger.info("Push results to Database")
+                    await store.aput(
+                        namespace=namespace, 
+                        key=f"{_key}", 
+                        value={
+                            "data": dumps(result, ensure_ascii=False)
+                        },
+                        ttl=10080 # 1 week
+                    )
+                # Mask Value    
+                state['file_input']['file_data'] = "MASKED"     
+                return state
+
         def analyze_request(state: OrchestratorState) -> OrchestratorState:
             """Analyze the user request and create a reasoning plan."""
             start_time = time.time()
@@ -380,7 +423,8 @@ async def create_orchestrator_agent():
                 "agent_results": agent_results,
                 "current_step": "tasks_completed",
                 "websearch_results": graph_state.get("websearch_results", {}),
-                "user_id": graph_state.get("user_id", None)
+                "user_id": graph_state.get("user_id", None),
+                "file_input": graph_state.get("file_input", None)
             }
 
         def synthesize_final_response(state: OrchestratorState) -> OrchestratorState:
@@ -437,22 +481,23 @@ async def create_orchestrator_agent():
         workflow = StateGraph(OrchestratorState)
         
         # Add nodes
-        workflow.add_node("analyze_request", analyze_request)
+        # workflow.add_node("analyze_request", analyze_request)
         workflow.add_node("websearch_research", websearch_research, cache_policy=CachePolicy(ttl=5))
-        workflow.add_node("create_agents", create_specialized_agents)
-        workflow.add_node("run_agent", run_agent)
-        workflow.add_node("synthesize_response", synthesize_final_response)
+        # workflow.add_node("create_agents", create_specialized_agents)
+        # workflow.add_node("run_agent", run_agent)
+        # workflow.add_node("synthesize_response", synthesize_final_response)
+        workflow.add_node("Resume_Parsing_Agent", resume_parse, cache_policy=CachePolicy(ttl=5))
         
         # Add edges
-        # workflow.add_edge(START, "analyze_request")
+        workflow.add_edge(START, "Resume_Parsing_Agent")
         workflow.add_edge(START, "websearch_research")
-        workflow.add_edge("analyze_request", "websearch_research")
-        workflow.add_edge("analyze_request", "create_agents")
+        # workflow.add_edge("analyze_request", "websearch_research")
+        # workflow.add_edge("analyze_request", "create_agents")
         # workflow.add_edge("websearch_research", "synthesize_response")
 
         #Dynamic Conditional Edges
-        workflow.add_conditional_edges("create_agents", define_agent_graph_nodes, ["run_agent"])
-        workflow.add_edge("run_agent", "synthesize_response")
+        # workflow.add_conditional_edges("create_agents", define_agent_graph_nodes, ["run_agent"])
+        # workflow.add_edge("run_agent", "synthesize_response")
         # workflow.add_edge("synthesize_response", END)
         
         return workflow.compile(

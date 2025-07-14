@@ -16,9 +16,10 @@ import { useStream } from "@langchain/langgraph-sdk/react";
 function App() {
   const [enter, setEnter] = useState(false)
   const [currentPage, setCurrentPage] = useState('welcome')
+  const [resetDock, setResetDock] = useState(0)
 
   const items = [
-    { icon: <VscHome size={18} color="white"/>, label: 'Home', onClick: () => setCurrentPage('main') },
+    { icon: <VscHome size={18} color="white"/>, label: 'Home', onClick: () => { setCurrentPage('main'); setResetDock(r => r + 1); } },
     { icon: <VscAccount size={18} color="white"/>, label: 'Profile', onClick: () => setCurrentPage('profile') },
     { icon: <VscSettingsGear size={18} color="white"/>, label: 'Settings', onClick: () => setCurrentPage('settings') },
     { icon: <VscInfo size={18} color="white"/>, label: 'About', onClick:() =>  setCurrentPage('about') }
@@ -47,7 +48,7 @@ function App() {
           />
           </h1>
           {/* Render the main page if the mainPage state is true */}
-          {currentPage === 'main' && <LandingPage />}
+          {currentPage === 'main' && <LandingPage reset={resetDock}/>}
           {/* Remove animation when mainPage is true */}
           {currentPage === 'welcome' && <SplashCursor SPLAT_RADIUS={0.1} />}
         </>

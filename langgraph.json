@@ -8,5 +8,6 @@
     "http": {
         "app": "./src/proximaai/mcp/server.py:app",
         "timeout": 10000
-    }
+    },
+    "image_distro": "wolfi"
 }

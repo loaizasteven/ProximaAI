@@ -1,12 +1,28 @@
 # MCP Tools (Model Context Protocol)
 
-## What are MCP Tools?
-MCP tools are external tools or services that communicate with your main application via the Model Context Protocol, often using subprocesses and stdio for communication. They can be written in any language and are typically launched as separate server processes.
+## Overview
+MCP tools are external services or scripts that interact with your main app using the Model Context Protocol. They can be implemented in any language and typically run as separate server processes, communicating via stdio or HTTP.
 
-## How Were MCP Tools Used?
-- Previously, tools like Perplexity search were implemented as MCP servers (e.g., `ppl-mcp-server.py`) or using `docker`/`npx` commands.
-- The main app would launch these as subprocesses and communicate over stdio using the MCP protocol.
-- This allowed for language-agnostic, modular tool development.
+## Using MCP Servers
 
-## Issues Faced When Deploying to LangGraph Studio
-- **Subprocesses and custom servers did not seem to have support in the platform.**
+### LangGraph Integration
+- LangGraph supports MCP tools through the `langgraph-mcp-adapter` package, allowing you to expose tools to agents. [1]
+
+### FastAPI Lifespan Support
+- LangGraph natively supports FastAPI and Starlette for custom server lifespans, but not FastMCP directly. To run MCP servers during deployment, mount your MCP server within FastAPI's lifespan events. [2]
+
+### MCP Protocol Basics
+MCP defines a strict client-server lifecycle for robust capability negotiation and state management:
+
+1. **Initialization**: Negotiate capabilities and agree on protocol version.
+2. **Operation**: Standard protocol communication.
+3. **Shutdown**: Graceful connection termination. [3]
+
+![](../../../static/mcp_lifecycle.png)
+
+In some workflows, we call third-party MCP servers directly (not as agent nodes) to reduce costs. We use deterministic nodes that communicate with MCP servers using JSON-RPC and async HTTP calls via httpx.
+
+## References
+[1]: https://langchain-ai.github.io/langgraph/agents/mcp/#use-mcp-tools  
+[2]: https://langchain-ai.github.io/langgraph/how-tos/http/custom_lifespan/  
+[3]: https://modelcontextprotocol.io/specification/2024-11-05/basic/lifecycle
