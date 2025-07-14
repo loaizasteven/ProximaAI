@@ -61,16 +61,42 @@ async def create_orchestrator_agent():
         await store.setup()
         
         async def resume_parse(state: OrchestratorState) -> OrchestratorState:
-            parse_agent = ResumeParsingAgent()
-            file_input = state.get('file_input')
-            if file_input:
-                result = await parse_agent.invoke(**file_input)
-                state['messages'].append({ "type": "agent", "content": result['content'][0]['text'] })
-            else:
-                state['messages'].append({ "type": "agent", "content": "Unable to Parse Resume" })
+            async with AsyncPostgresStore.from_conn_string(os.getenv("DB_URI", "")) as store:
+                # Set Up Store - Postgres
+                await store.setup()
+                namespace = (state['user_id'] or 'unknown', 'resume_parse')
+                # Pull request input
+                file_input = state.get('file_input')
 
-            state['file_input']['file_data'] = "MASKED"            
-            return state
+                # Check Cache
+                _key = hash(file_input.get('file_data'))
+                cache_results = await store.aget(namespace=namespace, key=f"{_key}", refresh_ttl=False)
+                if cache_results:
+                    logger.info("🔍 RESUME PARSE CACHE HIT")
+                    memory = loads(cache_results.value["data"])
+                    state['messages'].append({ "type": "agent", "content": memory['content'][0]['text'] })
+                else:
+                    # Parsing Agent
+                    parse_agent = ResumeParsingAgent()
+                    file_input = state.get('file_input')
+                    if file_input:
+                        result = await parse_agent.invoke(**file_input)
+                        state['messages'].append({ "type": "agent", "content": result['content'][0]['text'] })
+                    else:
+                        state['messages'].append({ "type": "agent", "content": "Unable to Parse Resume" })           
+
+                    logger.info("Push results to Database")
+                    await store.aput(
+                        namespace=namespace, 
+                        key=f"{_key}", 
+                        value={
+                            "data": dumps(result, ensure_ascii=False)
+                        },
+                        ttl=10080 # 1 week
+                    )
+                # Mask Value    
+                state['file_input']['file_data'] = "MASKED"     
+                return state
 
         def analyze_request(state: OrchestratorState) -> OrchestratorState:
             """Analyze the user request and create a reasoning plan."""
@@ -456,15 +482,15 @@ async def create_orchestrator_agent():
         
         # Add nodes
         # workflow.add_node("analyze_request", analyze_request)
-        # workflow.add_node("websearch_research", websearch_research, cache_policy=CachePolicy(ttl=5))
+        workflow.add_node("websearch_research", websearch_research, cache_policy=CachePolicy(ttl=5))
         # workflow.add_node("create_agents", create_specialized_agents)
         # workflow.add_node("run_agent", run_agent)
         # workflow.add_node("synthesize_response", synthesize_final_response)
-        workflow.add_node("Resume_Parsing_Agent", resume_parse)
+        workflow.add_node("Resume_Parsing_Agent", resume_parse, cache_policy=CachePolicy(ttl=5))
         
         # Add edges
         workflow.add_edge(START, "Resume_Parsing_Agent")
-        # workflow.add_edge(START, "websearch_research")
+        workflow.add_edge(START, "websearch_research")
         # workflow.add_edge("analyze_request", "websearch_research")
         # workflow.add_edge("analyze_request", "create_agents")
         # workflow.add_edge("websearch_research", "synthesize_response")
