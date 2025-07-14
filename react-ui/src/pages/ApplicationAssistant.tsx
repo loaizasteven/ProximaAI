@@ -44,7 +44,7 @@ export default function ApplicationAssistant() {
       <h2> Application Assistant Beta</h2>
       <div>
         {thread.messages.map((message, idx) => (
-          <div key={message.id ?? idx}>this is a{message.content as string}{message.id ?? idx}</div>
+          <div key={message.id ?? idx}>{message.content as string}{message.id ?? idx}</div>
         ))}
       </div>
 
