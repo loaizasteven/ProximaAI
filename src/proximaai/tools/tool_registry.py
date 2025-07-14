@@ -22,17 +22,17 @@ logger = get_logger("tool_registry")
 class ToolRegistry:
     """Registry for managing all available tools in the ProximaAI system."""
     
-    def __init__(self, tools:Dict[str, BaseTool]={}):
-        self.tools = tools
+    def __init__(self, tools: Optional[Dict[str, BaseTool]] = None):
+        self.tools = tools if tools is not None else {}
 
         logger.info("Initializing ToolRegistry")
         self._initialize_tools()
         logger.info("ToolRegistry initialized", total_tools=len(self.tools))
     
     @classmethod
-    async def async_init(cls, tools={}):
+    async def async_init(cls, tools: Optional[Dict[str, BaseTool]] = None):
         "Lazy/Deferred Tool Registration must be called after server is running. Fetch registry during tool binding on node"
-        instances = cls(tools)
+        instances = cls(tools if tools is not None else {})
         async def get_mcp_tools(
             mcp_connections: Mapping[str, Connection] = mcp_servers #Covariate type checking for subclasses
         ):
