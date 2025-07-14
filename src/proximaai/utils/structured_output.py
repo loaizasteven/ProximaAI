@@ -1,9 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Annotated, Optional
 from typing_extensions import TypedDict
-import io
-
-
 # Pydantic models for structured output
 class AgentPlan(BaseModel):
     step: int = Field(description="Step number in the execution plan")
