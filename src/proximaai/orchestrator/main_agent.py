@@ -68,7 +68,8 @@ async def create_orchestrator_agent():
                 file_input = state.get('file_input')
 
                 # Check Cache
-                _key = hash(file_input.get('file_data'))
+                import hashlib
+                _key = hashlib.sha256(file_input.get('file_data').encode('utf-8')).hexdigest()
                 cache_results = await store.aget(namespace=namespace, key=f"{_key}", refresh_ttl=False)
                 if cache_results:
                     logger.info("🔍 RESUME PARSE CACHE HIT")
