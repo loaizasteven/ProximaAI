@@ -5,6 +5,7 @@ from typing import Any, Union, Literal, Optional
 
 from proximaai.utils.structured_output import MarkdownResponse
 from jinja2 import Template
+import markdown
 import os
 import re
 
@@ -35,7 +36,12 @@ class TextConstructorAgent(BaseModel):
         clean_text = value.replace('\\n', '\n').replace('\\"', '"').replace('\\t', '\t')
         return clean_text
 
-    def invoke(self, method: Literal["format", "convert-html"], markdown_like:Optional[str] = None) -> dict:
+    @staticmethod
+    def strip_code_block(text):
+        # Remove triple backtick code blocks (with or without language)
+        return re.sub(r"^```[a-zA-Z]*\\n|\\n```$", "", text.strip(), flags=re.MULTILINE)
+
+    def invoke(self, method: Literal["format", "convert-html"], markdown_like:str) -> dict:
         if method == "format":
             # Get reasoning from the model with structured output
             rendered_prompt = self.template.render(resume_markdown=markdown_like) #type: ignore
@@ -45,4 +51,9 @@ class TextConstructorAgent(BaseModel):
 
             return {"formatted_resume_markdown": formatted_md, "current_step": "format_resume_with_template_complete"}
         else:
-            pass
+            logger.info("🎯 Converting markdown to HTML")
+
+            # Format and convert
+            formatted_md = self.strip_code_block(markdown_like)
+            html = markdown.markdown(formatted_md, extensions=['extra'])
+            return {"resume_html": html, "current_step": "markdown_to_html_complete"}

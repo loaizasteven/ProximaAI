@@ -137,9 +137,18 @@ async def create_orchestrator_agent():
             """Agent formats the tailored markdown using the RESUME_AGENT.j2 template."""
             logger.info("🎯 Formatting resume with template")
             tailored_md = state.get("tailored_resume_markdown", "")
-            response = TextConstructorAgent(model=model).invoke(method='format', markdown_like=tailored_md)
+            if isinstance(tailored_md, str):
+                return TextConstructorAgent(model=model).invoke(method='format', markdown_like=tailored_md)
+            else:
+                return {}
 
-            return response
+        def file_conversion(state: OrchestratorState) -> dict:
+            """Agent converts formatted markdown to HTML."""
+            agent_output = state.get("formatted_resume_markdown", "")
+            if isinstance(agent_output, str):
+                return TextConstructorAgent(model=model).invoke(method='convert-html', markdown_like=agent_output)
+            else:
+                return {}
 
         def analyze_request(state: OrchestratorState) -> OrchestratorState:
             """Analyze the user request and create a reasoning plan."""
@@ -535,6 +544,7 @@ async def create_orchestrator_agent():
         workflow.add_node("Resume_Parsing_Agent", resume_parse, cache_policy=CachePolicy(ttl=5))
         workflow.add_node("resume_designer", resume_designer)
         workflow.add_node("text_constructor_format", text_constructor_format)
+        workflow.add_node("file_conversion", file_conversion)
         
         # Add edges
         workflow.add_edge(START, "Resume_Parsing_Agent")
@@ -542,6 +552,7 @@ async def create_orchestrator_agent():
         workflow.add_edge("websearch_research", "resume_designer")
         workflow.add_edge("Resume_Parsing_Agent", "resume_designer")
         workflow.add_edge("resume_designer", "text_constructor_format")
+        workflow.add_edge("text_constructor_format", "file_conversion")
         # workflow.add_edge("analyze_request", "websearch_research")
         # workflow.add_edge("analyze_request", "create_agents")
         # workflow.add_edge("websearch_research", "synthesize_response")
@@ -551,38 +562,6 @@ async def create_orchestrator_agent():
         # workflow.add_edge("run_agent", "synthesize_response")
         # workflow.add_edge("synthesize_response", END)
         
-
-        # --- Node 3: Markdown to HTML ---
-        def markdown_to_html(state: OrchestratorState) -> OrchestratorState:
-            """Agent converts formatted markdown to HTML."""
-            logger.info("🎯 Converting markdown to HTML")
-            agent_output = state.get("formatted_resume_markdown", "")
-            import re
-
-            def strip_code_block(text):
-                # Remove triple backtick code blocks (with or without language)
-                return re.sub(r"^```[a-zA-Z]*\\n|\\n```$", "", text.strip(), flags=re.MULTILINE)
-
-            # Usage:
-            formatted_md = strip_code_block(agent_output)
-            # Compose prompt for LLM agent
-            # prompt = f"""
-            # You are a markdown-to-HTML converter. Convert the following markdown to HTML. Return only the HTML string.
-
-            # ---
-            # {formatted_md}
-            # ---
-            # """
-            # response = model.invoke(prompt)
-            import markdown
-            # html = response.content if hasattr(response, 'content') and isinstance(response.content, str) else str(response)
-            logger.info("✅ Markdown converted to HTML NEW.")
-            if formatted_md:
-                html = markdown.markdown(formatted_md, extensions=['extra'])
-            return {**state, "resume_html": html, "current_step": "markdown_to_html_complete"}
-
-        # Add new nodes to the workflow
-        workflow.add_node("markdown_to_html", markdown_to_html)
 
 
         return workflow.compile(
