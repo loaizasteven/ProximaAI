@@ -146,11 +146,12 @@ async def create_orchestrator_agent():
             """Agent converts formatted markdown to HTML."""
             agent_output = state.get("formatted_resume_markdown", "")
             if isinstance(agent_output, str):
-                return TextConstructorAgent(model=model).invoke(method='convert-html', markdown_like=agent_output)
+                response = TextConstructorAgent(model=model).invoke(method='convert-html', markdown_like=agent_output)
+                return {"message": [{"role": "agent", "content": response.get('resume_html', 'error')}]}
             else:
                 return {}
 
-        def analyze_request(state: OrchestratorState) -> OrchestratorState:
+        def analyze_request(state: OrchestratorState) -> dict:
             """Analyze the user request and create a reasoning plan."""
             start_time = time.time()
             logger.log_step("analyze_request", {"user_message_length": len(state["messages"][-1]["content"]) if state["messages"] else 0})
@@ -184,13 +185,12 @@ async def create_orchestrator_agent():
             logger.log_performance("analyze_request", duration, plan_steps=len(reasoning_data.plan))
             
             return {
-                **state,
                 "reasoning": reasoning_data.reasoning,
                 "plan": [step.model_dump() for step in reasoning_data.plan],
                 "current_step": "reasoning_complete"
             }
         
-        async def websearch_research(state: OrchestratorState, config: RunnableConfig, *, store: BaseStore) -> OrchestratorState:
+        async def websearch_research(state: OrchestratorState, config: RunnableConfig, *, store: BaseStore) -> dict:
             """Perform web search research based on the user request."""
             # Cache monitoring
             request_id = str(uuid.uuid4())[:8]
@@ -210,7 +210,6 @@ async def create_orchestrator_agent():
                     memory = loads(cache_results.value["data"])
 
                     return {
-                        **state,
                         "websearch_results": WebSearchResults(
                             **memory
                         ),
@@ -250,7 +249,6 @@ async def create_orchestrator_agent():
                         ttl=10080 # 1 week
                     )
                     return {
-                        **state,
                         "websearch_results": search_result,
                         "current_step": "websearch_complete"
                     }
@@ -259,7 +257,6 @@ async def create_orchestrator_agent():
                     logger.error("Web search research failed", error=str(e))
                     
                     return {
-                        **state,
                         "websearch_results": WebSearchResults(
                             company=company_name,
                             agent_response="",
@@ -269,7 +266,7 @@ async def create_orchestrator_agent():
                         "current_step": "websearch_failed"
                     }
         
-        def create_specialized_agents(state: OrchestratorState) -> OrchestratorState:
+        def create_specialized_agents(state: OrchestratorState) -> dict:
             """Create specialized agents based on the plan."""
             start_time = time.time()
             logger.log_step("create_specialized_agents", {"plan_steps": len(state["plan"])})
@@ -347,7 +344,6 @@ async def create_orchestrator_agent():
                 })
                 
             return {
-                **state,
                 "created_agents": created_agents,
                 "current_step": "agents_created"
             }
@@ -475,7 +471,7 @@ async def create_orchestrator_agent():
                 "current_step": "tasks_completed"
             }
 
-        def synthesize_final_response(state: OrchestratorState) -> OrchestratorState:
+        def synthesize_final_response(state: OrchestratorState) -> dict:
             """Synthesize responses from all agents into a final response."""
             start_time = time.time()
             logger.log_step("synthesize_final_response", {"agent_results_count": len(state["agent_results"])})
@@ -520,7 +516,6 @@ async def create_orchestrator_agent():
             logger.log_performance("synthesize_final_response", duration, response_length=len(final_response))
             
             return {
-                **state,
                 "final_response": final_response,
                 "current_step": "complete"
             }
