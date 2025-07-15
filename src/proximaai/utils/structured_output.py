@@ -1,6 +1,8 @@
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Annotated, Optional
 from typing_extensions import TypedDict
+import operator
+
 # Pydantic models for structured output
 class AgentPlan(BaseModel):
     step: int = Field(description="Step number in the execution plan")
@@ -60,7 +62,7 @@ class WebSearchResults(TypedDict):
 
 class OrchestratorStateMultiAgent(TypedDict):
     # https://langchain-ai.github.io/langgraph/troubleshooting/errors/INVALID_CONCURRENT_GRAPH_UPDATE/
-    messages: Annotated[List[Dict[str, Any]], select_first]
+    messages: Annotated[List[Dict[str, Any]], operator.add]
     file_input: Annotated[ResumeParseStructure, select_first]
     reasoning: Annotated[str, select_first]
     plan: Annotated[List[Dict[str, Any]], select_first]
