@@ -7,27 +7,20 @@ const Header = () => (
   <header className="atomize-header">
     <div className="logo-nav">
       <img src={reactLogo} alt="Logo" className="logo" />
-      <span className="brand">atomize</span>
+      <span className="brand">ProximaAI</span>
     </div>
-    <nav className="nav-links">
-      <a href="#features">Features</a>
-      <a href="#github">Github</a>
-      <a href="#designers">For Designers</a>
-      <button className="doc-btn">Documentation</button>
-    </nav>
   </header>
 );
 
 // Hero section
 const Hero = () => (
   <section className="atomize-hero">
-    <h1>Design System for React JS</h1>
+    <h1>Resume Designer Agent</h1>
     <p className="subtitle">
-      Atomize React is a UI framework that helps developers collaborate with designers and build consistent user interfaces effortlessly.
+      Our Multi Agent System helps users tailor their resume to the target job role with the application process.
     </p>
     <div className="hero-actions">
-      <button className="primary-btn">Get Started Now</button>
-      <button className="secondary-btn">Watch Video</button>
+      <button className="primary-btn">Run Workflow</button>
     </div>
   </section>
 );

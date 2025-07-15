@@ -22,22 +22,12 @@
   width: 32px;
   height: 32px;
   margin-right: 8px;
+  align-items: left;
 }
 .brand {
   font-weight: 700;
   font-size: 1.2rem;
   letter-spacing: 1px;
-}
-.nav-links {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-}
-.nav-links a {
-  color: #222;
-  text-decoration: none;
-  font-size: 1rem;
-  margin-right: 8px;
 }
 .doc-btn {
   background: #f5f6fa;
