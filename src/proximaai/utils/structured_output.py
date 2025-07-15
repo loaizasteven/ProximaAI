@@ -83,7 +83,7 @@ class AgentSpec(TypedDict):
         agent_id: Any
 
 class MarkdownResponse(BaseModel):
-    text:str = Field(..., description="Markdown code as text, that can be easily rendered")
+    text: str = Field(..., description="Markdown code as text, that can be easily rendered")
 
 class SectionChange(BaseModel):
     section: str = Field(description="The section of the resume that was changed (e.g., 'Experience', 'Education', etc.)")
