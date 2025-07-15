@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import './LandingPage.css'
 import ApplicationAssistant from './pages/ApplicationAssistant';
+import AppAssistant from './pages/AppAssistant';
+import BlurText from './BlurText';
 
 import logo from './assets/react.svg';
 
@@ -84,7 +86,7 @@ function ProductCard({ reset }){
                 </>
             }
             {showLanding && <LandingPageMain handleResumeBuilderClick={handleResumeBuilderClick} handleApplicationAssistantClick={handleApplicationAssistantClick} />}
-            {showAssistant && <ApplicationAssistant />}
+            {showAssistant && <AppAssistant />}
         </>
     );
 }
