@@ -11,8 +11,7 @@
 .atomize-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 32px 48px 0 48px;
+  align-items: left;
   background: #fff;
 }
 .logo-nav {
