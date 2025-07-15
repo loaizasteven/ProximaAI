@@ -54,7 +54,7 @@ class DesignerAgent(BaseModel):
         
         return data
 
-    def invoke(self, state: OrchestratorStateMultiAgent) -> dict:
+    def invoke(self) -> dict:
         logger.info("🎯 Tailoring resume markdown for company/job")
 
         # Instantiate Agent with Structured Output
