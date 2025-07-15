@@ -19,6 +19,7 @@ dependencies = [
     "langgraph-cli[inmem]>=0.3.3",
     "langmem>=0.0.27",
     "llama-cloud-services>=0.6.46",
+    "markdown>=3.8.2",
     "mcp[cli]>=1.9.4",
     "supabase>=2.16.0",
 ]
