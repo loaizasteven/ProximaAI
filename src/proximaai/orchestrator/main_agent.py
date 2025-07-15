@@ -357,7 +357,7 @@ async def create_orchestrator_agent():
             max_agents_to_run = state.get("max_agents_to_run", 2)  # Default to 2 agents if not specified
             return [Send("run_agent", {"state": state, "agent_spec": agent_info["agent_spec"], "agent_id": agent_info["agent_id"]}) for agent_info in created_agents[:max_agents_to_run]]
 
-        def run_agent(state: AgentSpec) -> OrchestratorState:
+        def run_agent(state: AgentSpec) -> dict:
             """Execute tasks with the created agents in parallel."""
             start_time = time.time()
             graph_state = state['state'] 
@@ -471,15 +471,8 @@ async def create_orchestrator_agent():
                                 successful_results=len([r for r in agent_results.values() if r["status"] == "completed"]))
 
             return {
-                **graph_state,
                 "agent_results": agent_results,
-                "current_step": "tasks_completed",
-                "websearch_results": graph_state.get("websearch_results", {}),
-                "user_id": graph_state.get("user_id", None),
-                "file_input": graph_state.get("file_input", None),
-                "tailored_resume_markdown": graph_state.get("tailored_resume_markdown", None),
-                "formatted_resume_markdown": graph_state.get("formatted_resume_markdown", None),
-                "resume_html": graph_state.get("resume_html", None),
+                "current_step": "tasks_completed"
             }
 
         def synthesize_final_response(state: OrchestratorState) -> OrchestratorState:
