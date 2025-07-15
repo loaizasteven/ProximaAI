@@ -14,7 +14,6 @@ import AboutPage from './AboutPage';
 import { useStream } from "@langchain/langgraph-sdk/react";
 
 function App() {
-  const [enter, setEnter] = useState(false)
   const [currentPage, setCurrentPage] = useState('welcome')
   const [resetDock, setResetDock] = useState(0)
 
