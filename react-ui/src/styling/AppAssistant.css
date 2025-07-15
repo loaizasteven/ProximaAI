@@ -101,47 +101,11 @@
   flex-direction: column;
   align-items: center;
 }
-
-/* Profile Card */
-.profile-card .avatar {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: #f5f6fa url('https://randomuser.me/api/portraits/women/44.jpg') center/cover;
-  margin-bottom: 16px;
+.inputbox {
+  display: block;
+  margin-left: 0;
+  flex: auto;
 }
-.profile-info .name {
-  font-weight: 600;
-  font-size: 1.1rem;
-}
-.profile-info .role {
-  color: #888;
-  font-size: 0.95rem;
-  margin-bottom: 12px;
-}
-.profile-actions {
-  display: flex;
-  gap: 10px;
-}
-.follow-btn {
-  background: #1976f6;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 6px 18px;
-  font-weight: 500;
-  cursor: pointer;
-}
-.message-btn {
-  background: #f5f6fa;
-  color: #222;
-  border: none;
-  border-radius: 6px;
-  padding: 6px 18px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
 /* Document Input Card */
 .document-input .image-placeholder {
   width: 100%;
