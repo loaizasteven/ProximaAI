@@ -32,7 +32,7 @@ function App() {
 
   return (
     <div className="app-container">
-      {(currentPage === 'welcome' || currentPage === 'main') && (
+      {(currentPage === 'welcome') && (
         <>
           <h1><BlurText
             text="Welcome to Proxima"
@@ -46,12 +46,10 @@ function App() {
             className="text-2xl mb-8"
           />
           </h1>
-          {/* Render the main page if the mainPage state is true */}
-          {currentPage === 'main' && <LandingPage reset={resetDock}/>}
-          {/* Remove animation when mainPage is true */}
-          {currentPage === 'welcome' && <SplashCursor SPLAT_RADIUS={0.1} />}
+          <SplashCursor SPLAT_RADIUS={0.1}></SplashCursor>
         </>
       )}
+      {currentPage === 'main' && <LandingPage reset={resetDock}/>}
       {currentPage === 'about' && (<AboutPage />)}
       {currentPage === 'profile' && 
         <div>
