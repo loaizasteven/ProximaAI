@@ -47,7 +47,7 @@ class TextConstructorAgent(BaseModel):
             rendered_prompt = self.template.render(resume_markdown=markdown_like) #type: ignore
             structured_model = self.model.with_structured_output(MarkdownResponse)
             response = structured_model.invoke(rendered_prompt)
-            formatted_md = __format_response(value=response.text) #type: ignore
+            formatted_md = self.__format_response(value=response.text) #type: ignore
 
             return {"formatted_resume_markdown": formatted_md, "current_step": "format_resume_with_template_complete"}
         else:
