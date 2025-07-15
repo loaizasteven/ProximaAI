@@ -1,4 +1,5 @@
 from langchain.chat_models import init_chat_model
+from langchain_core.messages import HumanMessage
 from langgraph.types import Send
 from langgraph.graph import StateGraph, END, START
 
@@ -10,10 +11,12 @@ import os
 
 from typing import Any
 from typing_extensions import TypedDict
-from proximaai.utils.structured_output import ReasoningPlan, OrchestratorStateMultiAgent, AgentSpec, WebSearchResults
+from proximaai.utils.structured_output import ReasoningPlan, OrchestratorStateMultiAgent, AgentSpec, WebSearchResults, MarkdownResponse
 
 from langchain_core.load.load import loads
 from langchain.load.dump import dumps
+
+from jinja2 import Template
 
 # Create alias for compatibility
 OrchestratorState = OrchestratorStateMultiAgent
@@ -26,6 +29,7 @@ from proximaai.utils.logger import setup_logging
 
 # Agents
 from proximaai.agents.websearch_agent import create_websearch_agent
+from proximaai.agents.designer import DesignerAgent
 from proximaai.agents.resume_parsing_agent import ResumeParsingAgent
 
 # LongTerm Memory & Cache
@@ -49,6 +53,11 @@ model = init_chat_model(
 # Get all available tools from the registry
 tool_registry = ToolRegistry()
 tools = tool_registry.get_all_tools()
+
+# Load template
+template_path = os.path.join(os.path.dirname(__file__), '../prebuilt/templates/RESUME_AGENT.j2')
+with open(template_path, 'r') as f:
+    template_str = f.read()
 
 # Add agent builder to tools
 agent_builder = AgentBuilder({tool.name: tool for tool in tools})
@@ -98,6 +107,33 @@ async def create_orchestrator_agent():
                 state['file_input']['file_data'] = "MASKED"     
                 return state
 
+        def resume_designer(state: OrchestratorState) -> dict:
+            """Agent rewrites the resume as markdown tailored to the company/job, with section-by-section reasoning."""
+
+            # Parse user messages
+            user_message = state["messages"][-1]["content"] if state["messages"] else ""
+            websearch = state.get("websearch_results", {})
+            resume_parsed = state.get("messages", [])
+
+            # Resume Designer Agent
+            agent = DesignerAgent(
+                query=HumanMessage(
+                    content=f"""
+                        {user_message}
+                        Below are intermediate results from other research agents providing additional context:
+                            # Web / Company Research Agent Results
+                            {str(websearch)}
+
+                            # User Parsed Resume
+                            {str(resume_parsed)}
+                    """
+                ),
+                model=model
+            )
+            results = agent.invoke()
+            
+            return results
+            
         def analyze_request(state: OrchestratorState) -> OrchestratorState:
             """Analyze the user request and create a reasoning plan."""
             start_time = time.time()
@@ -146,7 +182,7 @@ async def create_orchestrator_agent():
             logger.info(f"🔄 WEBSEARCH NODE EXECUTION - Request ID: {request_id} | Time: {execution_time} | LangGraph Cache TTL: 1 second")
             
             async with AsyncPostgresStore.from_conn_string(os.getenv("DB_URI", "")) as store:
-                company_name = "Geico"  # Default to Geico for now TODO: Make this dynamic
+                company_name = "Google"  # Default to Geico for now TODO: Make this dynamic
                 # Set Up Store - Postgres
                 await store.setup()
                 namespace = (f"websearch_research", )
@@ -424,7 +460,10 @@ async def create_orchestrator_agent():
                 "current_step": "tasks_completed",
                 "websearch_results": graph_state.get("websearch_results", {}),
                 "user_id": graph_state.get("user_id", None),
-                "file_input": graph_state.get("file_input", None)
+                "file_input": graph_state.get("file_input", None),
+                "tailored_resume_markdown": graph_state.get("tailored_resume_markdown", None),
+                "formatted_resume_markdown": graph_state.get("formatted_resume_markdown", None),
+                "resume_html": graph_state.get("resume_html", None),
             }
 
         def synthesize_final_response(state: OrchestratorState) -> OrchestratorState:
@@ -487,10 +526,13 @@ async def create_orchestrator_agent():
         # workflow.add_node("run_agent", run_agent)
         # workflow.add_node("synthesize_response", synthesize_final_response)
         workflow.add_node("Resume_Parsing_Agent", resume_parse, cache_policy=CachePolicy(ttl=5))
+        workflow.add_node("resume_designer", resume_designer)
         
         # Add edges
         workflow.add_edge(START, "Resume_Parsing_Agent")
         workflow.add_edge(START, "websearch_research")
+        workflow.add_edge("websearch_research", "resume_designer")
+        workflow.add_edge("Resume_Parsing_Agent", "resume_designer")
         # workflow.add_edge("analyze_request", "websearch_research")
         # workflow.add_edge("analyze_request", "create_agents")
         # workflow.add_edge("websearch_research", "synthesize_response")
@@ -500,6 +542,72 @@ async def create_orchestrator_agent():
         # workflow.add_edge("run_agent", "synthesize_response")
         # workflow.add_edge("synthesize_response", END)
         
+        # --- Node 1: Tailor Resume Markdown ---
+        
+
+        # --- Node 2: Format Resume with Template ---
+        def format_resume_with_template(state: OrchestratorState) -> OrchestratorState:
+            """Agent formats the tailored markdown using the RESUME_AGENT.j2 template."""
+            logger.info("🎯 Formatting resume with template")
+            tailored_md = state.get("tailored_resume_markdown", "")
+            # Use Jinja2 to render the template            
+            template = Template(template_str)
+            rendered_prompt = template.render(resume_markdown=tailored_md)
+
+            # Get reasoning from the model with structured output
+            structured_model = model.with_structured_output(MarkdownResponse)
+            response = structured_model.invoke(rendered_prompt)
+            # Extract the text field from the structured response
+            formatted_md = response.text  # type: ignore
+            
+            # Clean up the markdown response
+            import re
+            # Remove quotes if the response is wrapped in them
+            if formatted_md.startswith('"') and formatted_md.endswith('"'):
+                formatted_md = formatted_md[1:-1]
+            # Unescape newlines and other characters
+            formatted_md = formatted_md.replace('\\n', '\n').replace('\\"', '"').replace('\\t', '\t')
+            
+            logger.info("✅ Resume formatted with template.")
+            return {**state, "formatted_resume_markdown": formatted_md, "current_step": "format_resume_with_template_complete"}
+
+        # --- Node 3: Markdown to HTML ---
+        def markdown_to_html(state: OrchestratorState) -> OrchestratorState:
+            """Agent converts formatted markdown to HTML."""
+            logger.info("🎯 Converting markdown to HTML")
+            agent_output = state.get("formatted_resume_markdown", "")
+            import re
+
+            def strip_code_block(text):
+                # Remove triple backtick code blocks (with or without language)
+                return re.sub(r"^```[a-zA-Z]*\\n|\\n```$", "", text.strip(), flags=re.MULTILINE)
+
+            # Usage:
+            formatted_md = strip_code_block(agent_output)
+            # Compose prompt for LLM agent
+            # prompt = f"""
+            # You are a markdown-to-HTML converter. Convert the following markdown to HTML. Return only the HTML string.
+
+            # ---
+            # {formatted_md}
+            # ---
+            # """
+            # response = model.invoke(prompt)
+            import markdown
+            # html = response.content if hasattr(response, 'content') and isinstance(response.content, str) else str(response)
+            logger.info("✅ Markdown converted to HTML NEW.")
+            if formatted_md:
+                html = markdown.markdown(formatted_md, extensions=['extra'])
+            return {**state, "resume_html": html, "current_step": "markdown_to_html_complete"}
+
+        # Add new nodes to the workflow
+        workflow.add_node("format_resume_with_template", format_resume_with_template)
+        workflow.add_node("markdown_to_html", markdown_to_html)
+
+        # Add edges for the new flow
+        workflow.add_edge("resume_designer", "format_resume_with_template")
+        workflow.add_edge("format_resume_with_template", "markdown_to_html")
+
         return workflow.compile(
             store=store,
             cache=InMemoryCache()
