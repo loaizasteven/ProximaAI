@@ -11,7 +11,12 @@ import os
 
 from typing import Any
 from typing_extensions import TypedDict
-from proximaai.utils.structured_output import ReasoningPlan, OrchestratorStateMultiAgent, AgentSpec, WebSearchResults, MarkdownResponse
+from proximaai.utils.structured_output import (
+    ReasoningPlan, 
+    OrchestratorStateMultiAgent, 
+    AgentSpec, 
+    WebSearchResults
+)
 
 from langchain_core.load.load import loads
 from langchain.load.dump import dumps
