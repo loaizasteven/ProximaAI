@@ -28,7 +28,7 @@ class DesignerAgent(BaseModel):
             - Tailor or highlight content for the target job/company, but do not remove any section or content unless it is clearly irrelevant.
             - Add new content only if it increases relevance for the target job/company.
             - For each section (e.g., Experience, Education, Skills, etc.), provide a reasoning object describing what was changed, added, or removed, and why.
-            - Always include two leading blank line after any header (including bolded section headers) and before any markdown list, to ensure correct markdown rendering.
+            - Always include two leading blank lines after any header (including bolded section headers) and before any markdown list, to ensure correct markdown rendering.
             - Return a structured output as a JSON object with two fields:
                 - tailored_resume_markdown: the tailored resume as a markdown string
                 - reasoning: a list of objects, each with section, change, and justification fields, describing the reasoning for each section's changes
