@@ -2,6 +2,27 @@ import React from 'react';
 import '../styling/AppAssistant.css'; // We'll create this CSS file next
 import reactLogo from '../assets/react.svg'; // Placeholder logo
 
+// Background Images
+const sphere = "https://plus.unsplash.com/premium_photo-1752113495331-165d1b5b749a?q=80&w=3132&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+
+// Handle file input change
+const handleFileChange = (e) => {
+  const file = e.target.files?.[0];
+  if (!file) {
+    setFileBase64(null);
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    setFileName(file.name)
+    const dataUrl = reader.result;
+    const base64 = dataUrl.split(',')[1]; // Extract base64 only
+    setFileBase64(base64);
+  };
+  reader.readAsDataURL(file); 
+  
+}
+
 // Header component
 const Header = () => (
   <header className="atomize-header">
@@ -40,16 +61,20 @@ const ProfileCard = () => (
   </div>
 );
 
-const ImageCard = () => (
-  <div className="card image-card">
-    <div className="image-placeholder" />
-    <div className="image-info">
-      <div className="name">Meagan Fisher</div>
-      <div className="mini-profile">
-        <div className="mini-avatar" />
-        <span>John Doe</span>
-        <span className="mini-role">UI/UX Designer</span>
+const DocumentInputCard = () => (
+  <div className="card document-input">
+    <div 
+      className="image-placeholder" 
+      style={{
+        background: `url(${sphere}) center/cover`
+      }}
+    />
+    <div className="document-input-info">
+      <div className="description">
+        Resume Upload: <br></br><br></br>
+        Provide our agents with the latest version of your resume and we will take care of the rest.
       </div>
+      <input className="file-input" type="file" accept="*/*" onChange={handleFileChange} />
     </div>
   </div>
 );
@@ -71,7 +96,7 @@ const LandingPageAtomize = () => (
     <Hero />
     <div className="cards-row">
       <ProfileCard />
-      <ImageCard />
+      <DocumentInputCard />
       <LoginCard />
     </div>
   </div>
