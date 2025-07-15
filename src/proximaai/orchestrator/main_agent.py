@@ -147,7 +147,7 @@ async def create_orchestrator_agent():
             agent_output = state.get("formatted_resume_markdown", "")
             if isinstance(agent_output, str):
                 response = TextConstructorAgent(model=model).invoke(method='convert-html', markdown_like=agent_output)
-                return {"message": [{"role": "agent", "content": response.get('resume_html', 'error')}]}
+                return {"messages": [{"role": "agent", "content": response.get('resume_html', 'error')}]}
             else:
                 return {}
 
