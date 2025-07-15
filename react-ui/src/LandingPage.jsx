@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import './LandingPage.css'
-import ApplicationAssistant from './pages/ApplicationAssistant';
 import AppAssistant from './pages/AppAssistant';
 import BlurText from './BlurText';
 
