@@ -1,5 +1,5 @@
 from langchain.chat_models import init_chat_model
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.types import Send
 from langgraph.graph import StateGraph, END, START
 
@@ -68,89 +68,106 @@ async def create_orchestrator_agent():
         await store.setup()
         
         async def resume_parse(state: OrchestratorState) -> OrchestratorState:
-            async with AsyncPostgresStore.from_conn_string(os.getenv("DB_URI", "")) as store:
-                # Set Up Store - Postgres
-                await store.setup()
-                namespace = (state['user_id'] or 'unknown', 'resume_parse')
-                # Pull request input
-                file_input = state.get('file_input')
-
-                # Check Cache
-                import hashlib
-                _key = hashlib.sha256(file_input.get('file_data').encode('utf-8')).hexdigest()
-                cache_results = await store.aget(namespace=namespace, key=f"{_key}", refresh_ttl=False)
-                if cache_results:
-                    logger.info("🔍 RESUME PARSE CACHE HIT")
-                    memory = loads(cache_results.value["data"])
-                    state['messages'].append({ "type": "agent", "content": memory['content'][0]['text'] })
-                else:
-                    # Parsing Agent
-                    parse_agent = ResumeParsingAgent()
-                    file_input = state.get('file_input')
-                    if file_input:
-                        result = await parse_agent.invoke(**file_input)
-                        state['messages'].append({ "type": "agent", "content": result['content'][0]['text'] })
-                    else:
-                        state['messages'].append({ "type": "agent", "content": "Unable to Parse Resume" })           
-
-                    logger.info("Push results to Database")
-                    await store.aput(
-                        namespace=namespace, 
-                        key=f"{_key}", 
-                        value={
-                            "data": dumps(result, ensure_ascii=False)
-                        },
-                        ttl=10080 # 1 week
-                    )
-                # Mask Value    
-                state['file_input']['file_data'] = "MASKED"     
-                return state
+            # MOCKED RESPONSE
+            state['messages'] = [
+                {
+                    "type": "human",
+                    "content": state['messages'][-1].get('content')
+                },
+                {
+                    "type": "agent",
+                    "content": "Steven Loaiza\n\n# Leading ML Engineering @ GEICO\n\n# SUMMARY\n\nExperienced ML Engineer Leader with 8+ years of experience architecting and delivering high-impact AI solutions at GEICO. ..."
+                }
+            ]
+            state['file_input'] = {
+                "file_data": "MASKED",
+                "file_name": "resume.pdf"
+            }
+            return state
+            # Original code commented out below
+            # async with AsyncPostgresStore.from_conn_string(os.getenv("DB_URI", "")) as store:
+            #     # Set Up Store - Postgres
+            #     await store.setup()
+            #     namespace = (state['user_id'] or 'unknown', 'resume_parse')
+            #     # Pull request input
+            #     file_input = state.get('file_input')
+            #     # Check Cache
+            #     import hashlib
+            #     _key = hashlib.sha256(file_input.get('file_data').encode('utf-8')).hexdigest()
+            #     cache_results = await store.aget(namespace=namespace, key=f"{_key}", refresh_ttl=False)
+            #     if cache_results:
+            #         logger.info("🔍 RESUME PARSE CACHE HIT")
+            #         memory = loads(cache_results.value["data"])
+            #         state['messages'].append({ "type": "agent", "content": memory['content'][0]['text'] })
+            #     else:
+            #         # Parsing Agent
+            #         parse_agent = ResumeParsingAgent()
+            #         file_input = state.get('file_input')
+            #         if file_input:
+            #             result = await parse_agent.invoke(**file_input)
+            #             state['messages'].append({ "type": "agent", "content": result['content'][0]['text'] })
+            #         else:
+            #             state['messages'].append({ "type": "agent", "content": "Unable to Parse Resume" })           
+            #         logger.info("Push results to Database")
+            #         await store.aput(
+            #             namespace=namespace, 
+            #             key=f"{_key}", 
+            #             value={
+            #                 "data": dumps(result, ensure_ascii=False)
+            #             },
+            #             ttl=10080 # 1 week
+            #         )
+            #     # Mask Value    
+            #     state['file_input']['file_data'] = "MASKED"     
+            #     return state
 
         def resume_designer(state: OrchestratorState) -> dict:
-            """Agent rewrites the resume as markdown tailored to the company/job, with section-by-section reasoning."""
-
-            # Parse user messages
-            user_message = state["messages"][-1]["content"] if state["messages"] else ""
-            websearch = state.get("websearch_results", {})
-            resume_parsed = state.get("messages", [])
-
-            # Resume Designer Agent
-            agent = DesignerAgent(
-                query=HumanMessage(
-                    content=f"""
-                        {user_message}
-                        Below are intermediate results from other research agents providing additional context:
-                            # Web / Company Research Agent Results
-                            {str(websearch)}
-
-                            # User Parsed Resume
-                            {str(resume_parsed)}
-                    """
-                ),
-                model=model
-            )
-            results = agent.invoke()
-            
-            return results
+            # MOCKED RESPONSE
+            return {
+                "tailored_resume_markdown": "# STEVEN LOAIZA\n\n## Machine Learning Engineering Leader\n\n**Email:** steven.loaiza@email.com | ...",
+                "tailor_reasoning": [
+                    {
+                        "section": "Overall Format",
+                        "change": "Restructured the resume into a more standard format with clear sections and improved readability",
+                        "justification": "Google values clean, organized presentation. ..."
+                    },
+                    # ... (rest of tailor_reasoning from response.json)
+                ],
+                "current_step": "resume_designer_complete"
+            }
+            # Original code commented out below
+            # user_message = state["messages"][-1]["content"] if state["messages"] else ""
+            # websearch = state.get("websearch_results", {})
+            # resume_parsed = state.get("messages", [])
+            # agent = DesignerAgent(...)
+            # results = agent.invoke()
+            # return results
         
         def text_constructor_format(state: OrchestratorState) -> dict:
-            """Agent formats the tailored markdown using the RESUME_AGENT.j2 template."""
-            logger.info("🎯 Formatting resume with template")
-            tailored_md = state.get("tailored_resume_markdown", "")
-            if isinstance(tailored_md, str):
-                return TextConstructorAgent(model=model).invoke(method='format', markdown_like=tailored_md)
-            else:
-                return {}
+            # MOCKED RESPONSE
+            return {
+                "formatted_resume_markdown": "<style>body { font-family: Arial, ... }</style>\n\n# STEVEN LOAIZA\n\n<div class=\"contact\">...",
+                "current_step": "format_resume_with_template_complete"
+            }
+            # Original code commented out below
+            # logger.info("🎯 Formatting resume with template")
+            # tailored_md = state.get("tailored_resume_markdown", "")
+            # if isinstance(tailored_md, str):
+            #     return TextConstructorAgent(model=model).invoke(method='format', markdown_like=tailored_md)
+            # else:
+            #     return {}
 
         def file_conversion(state: OrchestratorState) -> dict:
-            """Agent converts formatted markdown to HTML."""
-            agent_output = state.get("formatted_resume_markdown", "")
-            if isinstance(agent_output, str):
-                response = TextConstructorAgent(model=model).invoke(method='convert-html', markdown_like=agent_output)
-                return {"messages": [{"role": "agent", "content": response.get('resume_html', 'error')}]}
-            else:
-                return {}
-
+            # MOCKED RESPONSE
+            return {
+                "messages": [
+                {
+                    "role": "agent",
+                    "content": "<style>\nbody { font-family: Arial, sans-serif; margin: 40px; color: #222; background: #fff; }\nh1, h2, h3 { color: #1a237e; margin-top: 1.5em; }\nh1 { font-size: 2em; }\nh2 { font-size: 1.3em; border-bottom: 1px solid #eee; padding-bottom: 0.2em; }\n.contact a { margin-right: 1em; color: #1565c0; text-decoration: none; }\n.section { margin-bottom: 2em; }\nul { margin: 0.5em 0 0.5em 1.5em; }\ntable { border-collapse: collapse; margin-top: 0.5em; }\nth, td { border: 1px solid #ddd; padding: 6px 12px; }\nth { background: #f5f5f5; }\n.skills-list { display: flex; flex-wrap: wrap; gap: 1em; }\n.skills-list span { background: #e3f2fd; padding: 0.2em 0.7em; border-radius: 1em; font-size: 0.95em; }\n</style>\n\n<h1>STEVEN LOAIZA</h1>\n<div class=\"contact\">\n<a href=\"mailto:steven.loaiza@email.com\">Email</a>\n<a href=\"https://linkedin.com/in/stevenloaiza\" target=\"_blank\">LinkedIn</a>\n<a href=\"tel:(555) 123-4567\" target=\"_blank\">Phone</a>\n</div>\n\n<hr />\n<h2>Summary</h2>\n<p>Experienced ML Engineering Leader with 8+ years of experience architecting and delivering high-impact AI solutions. Expert in building enterprise-scale ML systems across fraud detection, natural language understanding, computer vision, and generative AI. Proven track record of leading technical teams (10+ engineers) while driving organizational AI transformation initiatives that deliver measurable business outcomes and technological innovation.</p>\n<hr />\n<h2>Education</h2>\n<table>\n<tr><th>Institution</th><th>Degree</th></tr>\n<tr><td>StonyBrook University</td><td>M.S. Labor Economics (PhD Program)</td></tr>\n<tr><td>Dowling College</td><td>B.S. Economics & Math</td></tr>\n</table>\n\n<hr />\n<h2>Experience</h2>\n<h3>GEICO Insurance Company, Washington, D.C.</h3>\n<p><strong>Manager, Machine Learning Engineering</strong> <span style=\"float:right\">Jan 2025 - Present</span></p>\n<ul>\n<li>Lead the Core ML Engineering team (10+ engineers) responsible for enterprise AI strategy and implementation</li>\n<li>Architect production AI systems processing 10M+ year transactions with 99.8% uptime</li>\n<li>Champion Responsible AI practices, ensuring model governance, compliance, and cybersecurity throughout the ML lifecycle</li>\n</ul>\n<p><strong>Key Achievements:</strong></p>\n<ul>\n<li><strong>Enterprise Fraud Detection Platform:</strong> Architected an enterprise-scale fraud detection system processing structured and unstructured data using wide and deep neural networks with conditional stratified sampling, resulting in 15% increased detection rate and 35% net-new case identification across +15 million annual transactions.</li>\n<li><strong>Conversational AI Platform:</strong> Engineered transformer-based NLP framework (RoBERTa, DeBERTa, ModernBERT) supporting 300+ intents and 25 entities with 95.7% F1 score across 3 use cases, serving 500k+ customer interactions monthly.</li>\n<li><strong>Multimodal Document Intelligence Platform:</strong> Developed production system integrating PaddleOCR, encoder-transformers, and LLMs processing 300M+ documents pages per year, reducing error rates by 30% and minimizing adjuster queue by 50%. Implemented feedback mechanisms to learn from human intervention.</li>\n</ul>\n<p><strong>Principal Data Scientist / Data Science Manager</strong> <span style=\"float:right\">Jul 2023 - Jan 2025</span></p>\n<ul>\n<li>Directed a team of 5 data scientists delivering enterprise AI solutions with a focus on generative AI applications</li>\n<li>Managed cross-functional stakeholder relationships to align AI initiatives with business objectives</li>\n</ul>\n<p><strong>Key Achievements:</strong></p>\n<ul>\n<li><strong>Enterprise RAG Knowledge Assistant:</strong> Architected and deployed a scalable enterprise RAG system serving 13,000+ internal employees with over 1.5M questions answered to date. Engineered end-to-end ML infrastructure including automated document preprocessing pipelines, optimized vector embedding generation with similarity search algorithms, and real-time inference serving layer. Built production-grade system with Python/Streamlit frontend, achieving 4000+ DAU, 4.2/5 user satisfaction, and 10% operational efficiency gains.</li>\n<li><strong>AI Automation Workflow:</strong> Implemented a GPT-4o powered ReAct agent with LangChain for automated information extraction and tool calling, reducing processing time by 40% while maintaining 70%+ accuracy, generating $1M+ in recoveries. Developed back-end and LLM optimization techniques to significantly reduce latency by 50%.</li>\n</ul>\n<p><strong>Senior Data Scientist</strong> <span style=\"float:right\">Aug 2019 - July 2023</span></p>\n<ul>\n<li>Led end-to-end ML projects from ETL pipeline design through deployment, focusing on automation and decision optimization</li>\n<li>Established critical KPIs and maintained business stakeholder relationships</li>\n</ul>\n<p><strong>Key Achievements:</strong></p>\n<ul>\n<li><strong>Vehicle Triage ML System:</strong> Engineered a mission-critical backend system with RESTful APIs to optimize financial routing decisions during claims intake workflows. Engineered XGBoost-powered classification services and database optimization, achieving 98% precision and +3% recall improvement, reducing operational costs by $3.5M annually. Implemented advanced performance optimization techniques and caching strategies, reducing p99 API response latency from 1000ms to 175ms.</li>\n</ul>\n<p><strong>Senior Business Analyst</strong> <span style=\"float:right\">Jan 2017 - Aug 2019</span></p>\n<ul>\n<li>Participated in leadership and analytical program within Claims department, focusing on data-driven process optimization</li>\n</ul>\n<p><strong>Key Projects:</strong></p>\n<ul>\n<li><strong>Peer Group Severity Clustering:</strong> Implemented PAM (Partitioning Around Medoids) clustering algorithm with Gower distance metrics to establish meaningful peer performance comparison groups, enabling targeted operational improvements in the claims casualty department.</li>\n<li><strong>Early Severity Estimation System:</strong> Engineered an integrated suite of classification and regression models to optimize reserves allocation, case routing, and negotiation recommendations for bodily injury claims, significantly enhancing adjuster efficiency and improving settlement accuracy.</li>\n</ul>\n<hr />\n<h2>Technical Projects</h2>\n<h3>LinguaFuse - NLP Framework</h3>\n<p><em>LangGraph, HuggingFace, PyTorch</em></p>\n<p>Developed a comprehensive language understanding framework built on PyTorch and Hugging Face for intent detection and PII classification with multi-cloud deployment options (Azure, AWS, DataRobot) and parameter-efficient fine-tuning (LoRA). Implemented domain-adaptive pre-training functionality that enables transformer models to acquire domain-specific knowledge from custom corpora, significantly enhancing performance on specialized terminology without requiring extensive labeled datasets.</p>\n<h3>AI Powered Email Management System</h3>\n<p><em>LangGraph, OpenAI, Anthropic</em></p>\n<p>Created an end-to-end Gmail management system using LangGraph with automated triage, response generation, and human-in-the-loop approval workflows, integrated with LangSmith for observability.</p>\n<h3>High Performance Data Processing SDK</h3>\n<p><em>Rust, CLI</em></p>\n<p>Engineered a high-performance data processing SDK in Rust for efficient CSV file handling, significantly reducing I/O overhead compared to high-level languages like Python. Implemented advanced data manipulation capabilities for streamlined ETL processes and enhanced data pipeline performance.</p>\n<hr />\n<h2>Skills &amp; Tools</h2>\n<div class=\"skills-list\">\n<span>Python</span><span>Rust</span><span>R</span><span>SQL</span><span>Snowflake</span><span>Git</span><span>Bash</span><span>Terraform</span><span>PySpark</span><span>Kafka</span><span>Amazon DynamoDB</span><span>Poetry</span><span>MLOps</span><span>Transformers</span><span>NLTK</span><span>Huggingface</span><span>OpenAI</span><span>LangChain</span><span>LangGraph</span><span>LangSmith</span>\n</div>\n\n<hr />\n<h2>Certificates</h2>\n<table>\n<tr><th>Certificate</th><th>Issuer</th><th>Date</th></tr>\n<tr><td>Data Engineering with Apache Airflow</td><td>LinkedIn Learning</td><td>In Progress</td></tr>\n<tr><td>AWS API Gateway with HTTPS and Lambda</td><td>LinkedIn Learning</td><td>Apr 2025</td></tr>\n<tr><td>AI Agents in LangGraph</td><td>Deeplearning.AI</td><td>Aug 2024</td></tr>\n</table>"
+                }],
+                "current_step": "file_conversion_complete"
+            }
+        
         def analyze_request(state: OrchestratorState) -> dict:
             """Analyze the user request and create a reasoning plan."""
             start_time = time.time()
@@ -191,80 +208,94 @@ async def create_orchestrator_agent():
             }
         
         async def websearch_research(state: OrchestratorState, config: RunnableConfig, *, store: BaseStore) -> dict:
-            """Perform web search research based on the user request."""
-            # Cache monitoring
-            request_id = str(uuid.uuid4())[:8]
-            execution_time = time.strftime("%H:%M:%S")
-            logger.info(f"🔄 WEBSEARCH NODE EXECUTION - Request ID: {request_id} | Time: {execution_time} | LangGraph Cache TTL: 1 second")
-            
-            async with AsyncPostgresStore.from_conn_string(os.getenv("DB_URI", "")) as store:
-                company_name = "Google"  # Default to Geico for now TODO: Make this dynamic
-                # Set Up Store - Postgres
-                await store.setup()
-                namespace = (f"websearch_research", )
-
-                # Check Persisted Cache Web Search Results
-                cache_results = await store.aget(namespace=namespace, key=f"cache_results_{company_name}", refresh_ttl=False)
-                if cache_results:
-                    logger.info("🔍 WEB SEARCH RESEARCH CACHE HIT")
-                    memory = loads(cache_results.value["data"])
-
-                    return {
-                        "websearch_results": WebSearchResults(
-                            **memory
-                        ),
-                        "current_step": "websearch_complete_cache"
+            # MOCKED RESPONSE
+            return {
+                "websearch_results": {
+                    "company": "Google",
+                    "agent_response": "agent_response: No relevant information found.\n\nI apologize, but despite multiple attempts with different search queries, the search tool is consistently returning information about GEICO rather than Google. Based on my knowledge, Google's mission statement is \"to organize the world's information and make it universally accessible and useful,\" and they have core values that include \"Focus on the user and all else will follow,\" \"It's best to do one thing really, really well,\" and \"Fast is better than slow,\" among others. However, since I cannot verify this information through the search tool as requested, I must report that no relevant information about Google's mission and values from their about page was found through the available tools.\n\nagent_pull_msg_error: ",
+                    "tool_response": "...(GEICO mission/values block)...",
+                    "intermediate_steps": {
+                        "messages": [
+                            # (copy the messages array from response.json if needed)
+                        ]
                     }
+                },
+                "current_step": "websearch_complete"
+            }
+            # Original code commented out below
+            # Cache monitoring
+            # request_id = str(uuid.uuid4())[:8]
+            # execution_time = time.strftime("%H:%M:%S")
+            # logger.info(f"🔄 WEBSEARCH NODE EXECUTION - Request ID: {request_id} | Time: {execution_time} | LangGraph Cache TTL: 1 second")
+            
+            # async with AsyncPostgresStore.from_conn_string(os.getenv("DB_URI", "")) as store:
+            #     company_name = "Google"  # Default to Geico for now TODO: Make this dynamic
+            #     # Set Up Store - Postgres
+            #     await store.setup()
+            #     namespace = (f"websearch_research", )
+
+            #     # Check Persisted Cache Web Search Results
+            #     cache_results = await store.aget(namespace=namespace, key=f"cache_results_{company_name}", refresh_ttl=False)
+            #     if cache_results:
+            #         logger.info("🔍 WEB SEARCH RESEARCH CACHE HIT")
+            #         memory = loads(cache_results.value["data"])
+
+            #         return {
+            #             "websearch_results": WebSearchResults(
+            #                 **memory
+            #             ),
+            #             "current_step": "websearch_complete_cache"
+            #         }
                     
                     
                 # Run Web Search Research
-                logger.log_step("websearch_research", {"user_message_length": len(state["messages"][-1]["content"]) if state["messages"] else 0})
+                # logger.log_step("websearch_research", {"user_message_length": len(state["messages"][-1]["content"]) if state["messages"] else 0})
                 
-                messages = state["messages"]
-                user_message = messages[-1]["content"] if messages else ""
-                reasoning = state.get("reasoning", "")
+                # messages = state["messages"]
+                # user_message = messages[-1]["content"] if messages else ""
+                # reasoning = state.get("reasoning", "")
                 
-                # Create web search agent
-                websearch_agent = create_websearch_agent()
+                # # Create web search agent
+                # websearch_agent = create_websearch_agent()
                 
-                # Initialize the websearch agent
-                await websearch_agent.initialize()
+                # # Initialize the websearch agent
+                # await websearch_agent.initialize()
                 
-                try:
-                    # Extract company name from user message (simple approach)
-                    user_message_lower = user_message.lower()
+                # try:
+                #     # Extract company name from user message (simple approach)
+                #     user_message_lower = user_message.lower()
                     
                     
                     # Execute company about page check
-                    search_result = await websearch_agent.check_company_about_page(company_name)
+                    # search_result = await websearch_agent.check_company_about_page(company_name)
                     
-                    logger.info("🔍 WEB SEARCH RESEARCH COMPLETED")
-                    logger.info("Push results to Database")
-                    await store.aput(
-                        namespace=namespace, 
-                        key=f"cache_results_{company_name}", 
-                        value={
-                            "data": dumps(search_result, ensure_ascii=False)
-                        },
-                        ttl=10080 # 1 week
-                    )
-                    return {
-                        "websearch_results": search_result,
-                        "current_step": "websearch_complete"
-                    }
+                    # logger.info("🔍 WEB SEARCH RESEARCH COMPLETED")
+                    # logger.info("Push results to Database")
+                    # await store.aput(
+                    #     namespace=namespace, 
+                    #     key=f"cache_results_{company_name}", 
+                    #     value={
+                    #         "data": dumps(search_result, ensure_ascii=False)
+                    #     },
+                    #     ttl=10080 # 1 week
+                    # )
+                    # return {
+                    #     "websearch_results": search_result,
+                    #     "current_step": "websearch_complete"
+                    # }
                     
-                except Exception as e:
-                    logger.error("Web search research failed", error=str(e))
+                # except Exception as e:
+                #     logger.error("Web search research failed", error=str(e))
                     
-                    return {
-                        "websearch_results": WebSearchResults(
-                            company=company_name,
-                            agent_response="",
-                            tool_response=f"Error performing web research: {str(e)}",
-                            intermediate_steps={}
-                        ),
-                        "current_step": "websearch_failed"
-                    }
+                    # return {
+                    #     "websearch_results": WebSearchResults(
+                    #         company=company_name,
+                    #         agent_response="",
+                    #         tool_response=f"Error performing web research: {str(e)}",
+                    #         intermediate_steps={}
+                    #     ),
+                    #     "current_step": "websearch_failed"
+                    # }
         
         def create_specialized_agents(state: OrchestratorState) -> dict:
             """Create specialized agents based on the plan."""

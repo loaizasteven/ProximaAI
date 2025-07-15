@@ -63,7 +63,10 @@ function ProductCard({ reset }){
         setShowAssistant(true);
     };
     return (
-        <>
+        <>  
+            {showLanding && <div className="landing-page-headline">
+                ProximaAI is an AI-powered job search and resume assistant inspired by Anthropic's multi-agent research system. It leverages multi-agent technology and the Lang ecosystem to accelerate your career journey.
+            </div>}
             {showLanding && <LandingPageMain handleResumeBuilderClick={handleResumeBuilderClick} handleApplicationAssistantClick={handleApplicationAssistantClick} />}
             {showAssistant && <ApplicationAssistant />}
         </>
@@ -72,9 +75,6 @@ function ProductCard({ reset }){
 
 const LandingPage = ({reset}) => (
   <>
-  <div className="landing-page-headline">
-      ProximaAI is an AI-powered job search and resume assistant inspired by Anthropic's multi-agent research system. It leverages multi-agent technology and the Lang ecosystem to accelerate your career journey.
-  </div>
   <div className="product-card-container">
     <ProductCard reset={reset}/>
   </div>
