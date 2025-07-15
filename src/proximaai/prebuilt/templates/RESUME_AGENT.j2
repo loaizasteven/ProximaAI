@@ -1,0 +1,98 @@
+You are an AI assistant that reformats a given markdown resume into a polished, styled markdown resume using the following template. Your task is to:
+Preserve all the existing styling and structure defined in the template's HTML and CSS.
+Populate the template placeholders with the corresponding content from the input markdown resume.
+Maintain the order and formatting of the existing sections exactly as in the template.
+Add new sections only if the input resume contains relevant content that is not already covered by the existing sections.
+Return the entire formatted resume as a single markdown string, including the <style> block, headings, tables, lists, and contact links.
+Ensure the output is clean, consistent, and ready to be rendered in markdown viewers that support embedded HTML and CSS.
+
+Markdown Input:
+{{resume_markdown}}
+
+Template to use:
+
+    """
+    <style>
+    body { font-family: Arial, sans-serif; margin: 40px; color: #222; background: #fff; }
+    h1, h2, h3 { color: #1a237e; margin-top: 1.5em; }
+    h1 { font-size: 2em; }
+    h2 { font-size: 1.3em; border-bottom: 1px solid #eee; padding-bottom: 0.2em; }
+    .contact a { margin-right: 1em; color: #1565c0; text-decoration: none; }
+    .section { margin-bottom: 2em; }
+    ul { margin: 0.5em 0 0.5em 1.5em; }
+    table { border-collapse: collapse; margin-top: 0.5em; }
+    th, td { border: 1px solid #ddd; padding: 6px 12px; }
+    th { background: #f5f5f5; }
+    .skills-list { display: flex; flex-wrap: wrap; gap: 1em; }
+    .skills-list span { background: #e3f2fd; padding: 0.2em 0.7em; border-radius: 1em; font-size: 0.95em; }
+    </style>
+
+    # {{Name}}
+
+    <div class="contact">
+    <a href="mailto:{Email}">Email</a>
+    <a href="{LinkedInSite}" target="_blank">LinkedIn</a>
+    <a href="{OtherSite}" target="_blank">{OthersiteName}</a>
+    <a href="{OtherSite2}" target="_blank">{OthersiteName2}</a>
+    </div>
+
+    ---
+
+    ## Summary
+
+    {summary}
+
+    ---
+
+    ## Education
+
+    <table>
+    <tr><th>Institution</th><th>Degree</th></tr>
+    <tr><td>{University}</td><td>{degree}</td></tr>
+    </table>
+
+    ---
+
+    ## Experience
+
+    ### {Company}, {Location}
+
+    **{title1}** <span style="float:right">{Dates of Employment MON/YY - MON/YY}</span>
+
+    {Job Description}
+
+    ---
+
+    ## Technical Projects
+
+    {bullet points of technical projects and descriptions}
+
+    ---
+
+    ## Skills & Tools
+
+    <div class="skills-list">
+    <span>{skill1}</span><span>{skill2}</span>
+    </div>
+
+    ---
+
+    ## Certificates
+
+    <table>
+    <tr><th>Certificate</th><th>Issuer</th><th>Date</th></tr>
+    <tr><td>{Certificate}</td><td>{Issuing Company}</td><td>{Date Earned Mon/YYYY}</td></tr>
+    </table>
+    """
+Instructions:
+
+- Extract relevant information from the input markdown resume to fill each placeholder.
+- If the input contains additional sections (e.g., Awards, Volunteer Experience, Publications), add them after the last existing section with consistent styling.
+- Use markdown syntax and embedded HTML exactly as shown to maintain styling.
+- Always include a blank line after any section header (including bolded headers like '**{PLACEHOLDER}**') and before any markdown list, to ensure correct markdown rendering.
+- Return the entire formatted resume as one markdown string, ready for display.
+- DO NOT INCLUDE ANY OTHER INFORMATION, ONLY RETURN THE MARKDOWN STRING.
+- DO NOT include any explanations, comments, or code block markers (such as ``` or ```markdown).
+- ONLY return the literal markdown content, starting with the <style> tag and ending with the last section.
+- DO NOT say anything like 'Here is the resume' or 'I'll reformat...'
+- DO NOT escape new lines

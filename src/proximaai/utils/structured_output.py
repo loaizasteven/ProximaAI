@@ -1,6 +1,8 @@
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Annotated, Optional
 from typing_extensions import TypedDict
+import operator
+
 # Pydantic models for structured output
 class AgentPlan(BaseModel):
     step: int = Field(description="Step number in the execution plan")
@@ -60,7 +62,7 @@ class WebSearchResults(TypedDict):
 
 class OrchestratorStateMultiAgent(TypedDict):
     # https://langchain-ai.github.io/langgraph/troubleshooting/errors/INVALID_CONCURRENT_GRAPH_UPDATE/
-    messages: Annotated[List[Dict[str, Any]], select_first]
+    messages: Annotated[List[Dict[str, Any]], operator.add]
     file_input: Annotated[ResumeParseStructure, select_first]
     reasoning: Annotated[str, select_first]
     plan: Annotated[List[Dict[str, Any]], select_first]
@@ -70,9 +72,24 @@ class OrchestratorStateMultiAgent(TypedDict):
     final_response: Annotated[str, select_first]
     current_step: Annotated[str, select_first]
     user_id: Annotated[Optional[str], select_first]
+    tailored_resume_markdown: Annotated[Optional[str], select_first]
+    formatted_resume_markdown: Annotated[Optional[str], select_first]
+    resume_html: Annotated[Optional[str], select_first]
+    tailor_reasoning: Annotated[Optional[Any], select_first]
 
 class AgentSpec(TypedDict):
         state: OrchestratorState
         agent_spec: Any
         agent_id: Any
-        
+
+class MarkdownResponse(BaseModel):
+    text: str = Field(..., description="Markdown code as text, that can be easily rendered")
+
+class SectionChange(BaseModel):
+    section: str = Field(description="The section of the resume that was changed (e.g., 'Experience', 'Education', etc.)")
+    change: str = Field(description="A description of what was changed, added, or removed in this section.")
+    justification: str = Field(description="The reasoning for this change, addition, or removal.")
+
+class TailoredResumeWithReasoning(BaseModel):
+    tailored_resume_markdown: str = Field(description="The tailored resume as a markdown string, preserving all original sections unless truly irrelevant.")
+    reasoning: List[SectionChange] = Field(description="A list of section-by-section reasoning for each change, addition, or removal.")

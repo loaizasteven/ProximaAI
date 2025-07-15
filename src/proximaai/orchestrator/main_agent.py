@@ -1,4 +1,5 @@
 from langchain.chat_models import init_chat_model
+from langchain_core.messages import HumanMessage
 from langgraph.types import Send
 from langgraph.graph import StateGraph, END, START
 
@@ -10,7 +11,12 @@ import os
 
 from typing import Any
 from typing_extensions import TypedDict
-from proximaai.utils.structured_output import ReasoningPlan, OrchestratorStateMultiAgent, AgentSpec, WebSearchResults
+from proximaai.utils.structured_output import (
+    ReasoningPlan, 
+    OrchestratorStateMultiAgent, 
+    AgentSpec, 
+    WebSearchResults
+)
 
 from langchain_core.load.load import loads
 from langchain.load.dump import dumps
@@ -26,7 +32,9 @@ from proximaai.utils.logger import setup_logging
 
 # Agents
 from proximaai.agents.websearch_agent import create_websearch_agent
+from proximaai.agents.designer import DesignerAgent
 from proximaai.agents.resume_parsing_agent import ResumeParsingAgent
+from proximaai.agents.constructor import TextConstructorAgent
 
 # LongTerm Memory & Cache
 from langgraph.store.postgres.aio import AsyncPostgresStore
@@ -98,7 +106,52 @@ async def create_orchestrator_agent():
                 state['file_input']['file_data'] = "MASKED"     
                 return state
 
-        def analyze_request(state: OrchestratorState) -> OrchestratorState:
+        def resume_designer(state: OrchestratorState) -> dict:
+            """Agent rewrites the resume as markdown tailored to the company/job, with section-by-section reasoning."""
+
+            # Parse user messages
+            user_message = state["messages"][-1]["content"] if state["messages"] else ""
+            websearch = state.get("websearch_results", {})
+            resume_parsed = state.get("messages", [])
+
+            # Resume Designer Agent
+            agent = DesignerAgent(
+                query=HumanMessage(
+                    content=f"""
+                        {user_message}
+                        Below are intermediate results from other research agents providing additional context:
+                            # Web / Company Research Agent Results
+                            {str(websearch)}
+
+                            # User Parsed Resume
+                            {str(resume_parsed)}
+                    """
+                ),
+                model=model
+            )
+            results = agent.invoke()
+            
+            return results
+        
+        def text_constructor_format(state: OrchestratorState) -> dict:
+            """Agent formats the tailored markdown using the RESUME_AGENT.j2 template."""
+            logger.info("🎯 Formatting resume with template")
+            tailored_md = state.get("tailored_resume_markdown", "")
+            if isinstance(tailored_md, str):
+                return TextConstructorAgent(model=model).invoke(method='format', markdown_like=tailored_md)
+            else:
+                return {}
+
+        def file_conversion(state: OrchestratorState) -> dict:
+            """Agent converts formatted markdown to HTML."""
+            agent_output = state.get("formatted_resume_markdown", "")
+            if isinstance(agent_output, str):
+                response = TextConstructorAgent(model=model).invoke(method='convert-html', markdown_like=agent_output)
+                return {"messages": [{"role": "agent", "content": response.get('resume_html', 'error')}]}
+            else:
+                return {}
+
+        def analyze_request(state: OrchestratorState) -> dict:
             """Analyze the user request and create a reasoning plan."""
             start_time = time.time()
             logger.log_step("analyze_request", {"user_message_length": len(state["messages"][-1]["content"]) if state["messages"] else 0})
@@ -132,13 +185,12 @@ async def create_orchestrator_agent():
             logger.log_performance("analyze_request", duration, plan_steps=len(reasoning_data.plan))
             
             return {
-                **state,
                 "reasoning": reasoning_data.reasoning,
                 "plan": [step.model_dump() for step in reasoning_data.plan],
                 "current_step": "reasoning_complete"
             }
         
-        async def websearch_research(state: OrchestratorState, config: RunnableConfig, *, store: BaseStore) -> OrchestratorState:
+        async def websearch_research(state: OrchestratorState, config: RunnableConfig, *, store: BaseStore) -> dict:
             """Perform web search research based on the user request."""
             # Cache monitoring
             request_id = str(uuid.uuid4())[:8]
@@ -146,7 +198,7 @@ async def create_orchestrator_agent():
             logger.info(f"🔄 WEBSEARCH NODE EXECUTION - Request ID: {request_id} | Time: {execution_time} | LangGraph Cache TTL: 1 second")
             
             async with AsyncPostgresStore.from_conn_string(os.getenv("DB_URI", "")) as store:
-                company_name = "Geico"  # Default to Geico for now TODO: Make this dynamic
+                company_name = "Google"  # Default to Geico for now TODO: Make this dynamic
                 # Set Up Store - Postgres
                 await store.setup()
                 namespace = (f"websearch_research", )
@@ -158,7 +210,6 @@ async def create_orchestrator_agent():
                     memory = loads(cache_results.value["data"])
 
                     return {
-                        **state,
                         "websearch_results": WebSearchResults(
                             **memory
                         ),
@@ -198,7 +249,6 @@ async def create_orchestrator_agent():
                         ttl=10080 # 1 week
                     )
                     return {
-                        **state,
                         "websearch_results": search_result,
                         "current_step": "websearch_complete"
                     }
@@ -207,7 +257,6 @@ async def create_orchestrator_agent():
                     logger.error("Web search research failed", error=str(e))
                     
                     return {
-                        **state,
                         "websearch_results": WebSearchResults(
                             company=company_name,
                             agent_response="",
@@ -217,7 +266,7 @@ async def create_orchestrator_agent():
                         "current_step": "websearch_failed"
                     }
         
-        def create_specialized_agents(state: OrchestratorState) -> OrchestratorState:
+        def create_specialized_agents(state: OrchestratorState) -> dict:
             """Create specialized agents based on the plan."""
             start_time = time.time()
             logger.log_step("create_specialized_agents", {"plan_steps": len(state["plan"])})
@@ -295,7 +344,6 @@ async def create_orchestrator_agent():
                 })
                 
             return {
-                **state,
                 "created_agents": created_agents,
                 "current_step": "agents_created"
             }
@@ -305,7 +353,7 @@ async def create_orchestrator_agent():
             max_agents_to_run = state.get("max_agents_to_run", 2)  # Default to 2 agents if not specified
             return [Send("run_agent", {"state": state, "agent_spec": agent_info["agent_spec"], "agent_id": agent_info["agent_id"]}) for agent_info in created_agents[:max_agents_to_run]]
 
-        def run_agent(state: AgentSpec) -> OrchestratorState:
+        def run_agent(state: AgentSpec) -> dict:
             """Execute tasks with the created agents in parallel."""
             start_time = time.time()
             graph_state = state['state'] 
@@ -419,15 +467,11 @@ async def create_orchestrator_agent():
                                 successful_results=len([r for r in agent_results.values() if r["status"] == "completed"]))
 
             return {
-                **graph_state,
                 "agent_results": agent_results,
-                "current_step": "tasks_completed",
-                "websearch_results": graph_state.get("websearch_results", {}),
-                "user_id": graph_state.get("user_id", None),
-                "file_input": graph_state.get("file_input", None)
+                "current_step": "tasks_completed"
             }
 
-        def synthesize_final_response(state: OrchestratorState) -> OrchestratorState:
+        def synthesize_final_response(state: OrchestratorState) -> dict:
             """Synthesize responses from all agents into a final response."""
             start_time = time.time()
             logger.log_step("synthesize_final_response", {"agent_results_count": len(state["agent_results"])})
@@ -472,7 +516,6 @@ async def create_orchestrator_agent():
             logger.log_performance("synthesize_final_response", duration, response_length=len(final_response))
             
             return {
-                **state,
                 "final_response": final_response,
                 "current_step": "complete"
             }
@@ -487,10 +530,17 @@ async def create_orchestrator_agent():
         # workflow.add_node("run_agent", run_agent)
         # workflow.add_node("synthesize_response", synthesize_final_response)
         workflow.add_node("Resume_Parsing_Agent", resume_parse, cache_policy=CachePolicy(ttl=5))
+        workflow.add_node("resume_designer", resume_designer)
+        workflow.add_node("text_constructor_format", text_constructor_format)
+        workflow.add_node("file_conversion", file_conversion)
         
         # Add edges
         workflow.add_edge(START, "Resume_Parsing_Agent")
         workflow.add_edge(START, "websearch_research")
+        workflow.add_edge("websearch_research", "resume_designer")
+        workflow.add_edge("Resume_Parsing_Agent", "resume_designer")
+        workflow.add_edge("resume_designer", "text_constructor_format")
+        workflow.add_edge("text_constructor_format", "file_conversion")
         # workflow.add_edge("analyze_request", "websearch_research")
         # workflow.add_edge("analyze_request", "create_agents")
         # workflow.add_edge("websearch_research", "synthesize_response")
@@ -500,6 +550,8 @@ async def create_orchestrator_agent():
         # workflow.add_edge("run_agent", "synthesize_response")
         # workflow.add_edge("synthesize_response", END)
         
+
+
         return workflow.compile(
             store=store,
             cache=InMemoryCache()
