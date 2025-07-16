@@ -101,15 +101,21 @@
   flex-direction: column;
   align-items: center;
 }
+
 .inputbox {
   display: block;
   margin-left: 0;
   flex: auto;
-  width: 100%; 
+  width: 95%; 
   height: 80px;
   resize: vertical;
   font-family: 'Courier New', Courier, monospace;
   overflow: auto;
+  border-radius: 10px;
+  border-color: #dcd6d6;
+  padding: 1ch;
+  margin-top: auto;
+  margin-bottom: 2px;
 }
 /* Document Input Card */
 .document-input .image-placeholder {
@@ -117,6 +123,12 @@
   height: 120px;
   border-radius: 12px;
   margin-bottom: 16px;
+}
+
+.document-input-info{
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .file-input {
