@@ -105,6 +105,11 @@
   display: block;
   margin-left: 0;
   flex: auto;
+  width: 100%; 
+  height: 80px;
+  resize: vertical;
+  font-family: 'Courier New', Courier, monospace;
+  overflow: auto;
 }
 /* Document Input Card */
 .document-input .image-placeholder {

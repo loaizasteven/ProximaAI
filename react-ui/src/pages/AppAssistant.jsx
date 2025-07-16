@@ -34,11 +34,13 @@ function MyForm({ userquery, setUserQuery }) {
   };
 
   return (
-    <input
+    <textarea
+      className='inputbox'
+      width='2000ch'
       type="text"
       value={userquery}
       onChange={handleNameChange}
-      placeholder="Add text here"
+      placeholder="Add context here"
     />
   );
 }
