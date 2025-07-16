@@ -92,7 +92,7 @@ const JobDescriptionCard = ({ jobdetails, setJobDetails }) => (
     />
     <div className="document-input-info">
       <div className="description">
-        Job Description: <br /><br />
+        Target Job Description: <br /><br />
         Paste the job description or requirements here.
       </div>
       <MyForm userquery={jobdetails} setUserQuery={setJobDetails} placeholder="Add job details here"/>
