@@ -4,6 +4,7 @@ import reactLogo from '../assets/react.svg';
 
 const galaxy = "https://images.unsplash.com/photo-1750292836196-3aafd7645c08?q=80&w=1728&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
 const sphere = "https://plus.unsplash.com/premium_photo-1752113495331-165d1b5b749a?q=80&w=3132&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
+const spiral = "https://images.unsplash.com/photo-1750969393822-36e48a31895f?q=80&w=1180&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
 
 // Header component
 const Header = () => (
@@ -28,7 +29,7 @@ const Hero = ({ onRun }) => (
   </section>
 );
 
-function MyForm({ userquery, setUserQuery }) {
+function MyForm({ userquery, setUserQuery, placeholder }) {
   const handleNameChange = (event) => {
     setUserQuery(event.target.value);
   };
@@ -40,7 +41,7 @@ function MyForm({ userquery, setUserQuery }) {
       type="text"
       value={userquery}
       onChange={handleNameChange}
-      placeholder="Add context here"
+      placeholder={placeholder ?? "Add context here"}
     />
   );
 }
@@ -81,13 +82,21 @@ const DocumentInputCard = ({ handleFileChange }) => (
   </div>
 );
 
-const LoginCard = () => (
-  <div className="card login-card">
-    <div className="login-title">Login into your account</div>
-    <div className="login-sub">Don't have an account yet? <a href="#">Create New</a></div>
-    <input className="login-input" type="email" placeholder="johndoe1@gmail.com" />
-    <input className="login-input" type="password" placeholder="Password" />
-    <button className="login-btn">Login</button>
+const JobDescriptionCard = ({ jobdetails, setJobDetails }) => (
+  <div className="card document-input">
+    <div 
+      className="image-placeholder" 
+      style={{
+        background: `url(${spiral}) center/cover`
+      }}
+    />
+    <div className="document-input-info">
+      <div className="description">
+        Job Description: <br /><br />
+        Paste the job description or requirements here.
+      </div>
+      <MyForm userquery={jobdetails} setUserQuery={setJobDetails} placeholder="Add job details here"/>
+    </div>
   </div>
 );
 
@@ -95,6 +104,7 @@ const LandingPageAtomize = () => {
   const [userquery, setUserQuery] = useState('');
   const [fileName, setFileName] = useState('');
   const [fileBase64, setFileBase64] = useState(null);
+  const [jobdetails, setJobDetails] = useState('');
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -115,7 +125,7 @@ const LandingPageAtomize = () => {
 
   const handleRun = () => {
     // Use userquery, fileName, fileBase64 as needed
-    console.log({ userquery, fileName, fileBase64 });
+    console.log({ userquery, fileName, fileBase64 , jobdetails});
   };
 
   return (
@@ -125,7 +135,7 @@ const LandingPageAtomize = () => {
       <div className="cards-row">
         <UserInputCard userquery={userquery} setUserQuery={setUserQuery} />
         <DocumentInputCard handleFileChange={handleFileChange} />
-        <LoginCard />
+        <JobDescriptionCard jobdetails={jobdetails} setJobDetails={setJobDetails} />
       </div>
     </div>
   );
