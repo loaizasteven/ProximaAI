@@ -1,0 +1,164 @@
+/* Root container */
+.atomize-root {
+  font-family: 'Inter', Arial, sans-serif;
+  background: #fff;
+  min-height: 100vh;
+  padding: 0;
+  margin: 0;
+}
+
+/* Header styles */
+.atomize-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: left;
+  background: #fff;
+}
+.logo-nav {
+  display: flex;
+  align-items: center;
+}
+.logo {
+  width: 32px;
+  height: 32px;
+  margin-right: 8px;
+  align-items: left;
+}
+.brand {
+  font-weight: 700;
+  font-size: 1.2rem;
+  letter-spacing: 1px;
+}
+.doc-btn {
+  background: #f5f6fa;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 18px;
+  font-weight: 500;
+  cursor: pointer;
+  color: #888;
+}
+
+/* Hero section */
+.atomize-hero {
+  text-align: center;
+  margin-top: 32px;
+  margin-bottom: 48px;
+}
+.atomize-hero h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.subtitle {
+  color: #888;
+  font-size: 1.1rem;
+  margin-bottom: 24px;
+}
+.hero-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+.primary-btn {
+  background: #d1af64;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 28px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.primary-btn:focus {
+  outline: None;
+}
+
+/* Cards row */
+.cards-row {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  margin-top: 32px;
+}
+
+/* Card base styles */
+.card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  padding: 28px 24px;
+  min-width: 260px;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.inputbox {
+  display: block;
+  margin-left: 0;
+  flex: auto;
+  width: 95%; 
+  height: 80px;
+  resize: vertical;
+  font-family: 'Courier New', Courier, monospace;
+  overflow: auto;
+  border-radius: 10px;
+  border-color: #dcd6d6;
+  padding: 1ch;
+  margin-top: auto;
+  margin-bottom: 2px;
+}
+/* Document Input Card */
+.document-input .image-placeholder {
+  width: 100%;
+  height: 120px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.document-input-info{
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.file-input {
+  font-size: 0.8rem;
+  font-style: italic;
+  display: block;
+  margin-left: 0;
+}
+
+.document-input-info .description {
+  font-weight: 600;
+  opacity: 50%;
+  font-size: 0.8rem;
+  margin-bottom: 8px;
+  text-align: left;
+}
+.mini-profile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mini-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #f5f6fa url('https://randomuser.me/api/portraits/men/32.jpg') center/cover;
+}
+.mini-role {
+  color: #888;
+  font-size: 0.9rem;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+.pulse-text {
+  animation: pulse 1s infinite;
+}

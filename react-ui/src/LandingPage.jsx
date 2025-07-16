@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import './LandingPage.css'
-import ApplicationAssistant from './pages/ApplicationAssistant';
+import AppAssistant from './pages/AppAssistant';
+import BlurText from './BlurText';
 
 import logo from './assets/react.svg';
 
@@ -63,18 +64,34 @@ function ProductCard({ reset }){
         setShowAssistant(true);
     };
     return (
-        <>
+        <>  
+            {showLanding && 
+                <>
+                    <h1><BlurText
+                        text="Welcome to Proxima"
+                        shinyTexts={["Designer","Builder", "AI"]}
+                        stepDuration={0.35}
+                        carouselInterval={1500}
+                        delay={20}
+                        animateBy="letters"
+                        direction="top"
+                        onAnimationComplete={() => {}}
+                        className="text-2xl mb-8"
+                    />
+                    </h1>
+                    <div className="landing-page-headline">
+                        ProximaAI is an AI-powered job search and resume assistant inspired by Anthropic's multi-agent research system. It leverages multi-agent technology and the Lang ecosystem to accelerate your career journey.
+                    </div>
+                </>
+            }
             {showLanding && <LandingPageMain handleResumeBuilderClick={handleResumeBuilderClick} handleApplicationAssistantClick={handleApplicationAssistantClick} />}
-            {showAssistant && <ApplicationAssistant />}
+            {showAssistant && <AppAssistant />}
         </>
     );
 }
 
 const LandingPage = ({reset}) => (
   <>
-  <div className="landing-page-headline">
-      ProximaAI is an AI-powered job search and resume assistant inspired by Anthropic's multi-agent research system. It leverages multi-agent technology and the Lang ecosystem to accelerate your career journey.
-  </div>
   <div className="product-card-container">
     <ProductCard reset={reset}/>
   </div>
