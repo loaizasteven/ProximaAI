@@ -17,16 +17,33 @@ const Header = () => (
     </div>
   </header>
 );
-
-// Hero section
-const Hero = ({ onRun }) => (
+// SubHeader section
+const SubHeader = ({ onRun, thread, fileName, lastResumeHtml }) => (
   <section className="atomize-hero">
     <h1>Resume Designer Agent</h1>
     <p className="subtitle">
       Our Multi Agent System helps users tailor their resume to the target job role with the application process.
+      {lastResumeHtml &&
+        <span>
+        Your resume is ready{" "}
+        <a
+          href={`data:text/html;charset=utf-8,${encodeURIComponent(lastResumeHtml)}`}
+          download={fileName ? fileName.replace(/\.[^/.]+$/, '.html') : 'resume.html'}
+        >
+          click here
+        </a>
+        {" "}to download.
+      </span>
+      }
     </p>
-    <div className="hero-actions">
-      <button className="primary-btn" onClick={onRun}>Run Workflow</button>
+    <div>
+      <button className="primary-btn" onClick={onRun}>
+        {thread.isLoading ? (
+          <span className="pulse-text">Agent Thinking...</span>
+        ) : (
+          "Run Workflow"
+        )}
+      </button>
     </div>
   </section>
 );
@@ -162,38 +179,7 @@ const LandingPageAtomize = () => {
   return (
     <div className="atomize-root">
       <Header />
-      {lastResumeHtml && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: '16px',
-            right: '16px',
-            backgroundColor: 'lightgrey',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
-            borderRadius: '6px',
-            padding: '4px 8px',
-            zIndex: 1000,
-            minWidth: '80px',
-            maxWidth: 'calc(100vw - 32px)',
-            textAlign: 'left',
-            fontSize: '0.8rem',
-            boxSizing: 'border-box',
-            overflow: 'hidden',
-            wordBreak: 'break-all',
-          }}
-        >
-          {fileName && <div style={{ fontWeight: 100, marginBottom: 2, fontSize: '0.85em' }}>File: <span style={{ fontWeight: 100 }}>{fileName}</span></div>}
-          <a
-            href={`data:text/html;charset=utf-8,${encodeURIComponent(lastResumeHtml)}`}
-            download={fileName ? fileName.replace(/\.[^/.]+$/, '.html') : 'resume.html'}
-            className="primary-btn"
-            style={{ display: 'inline-block', margin: '8px', width: 'auto', backgroundColor: 'green'}}
-          >
-            Download HTML
-          </a>
-        </div>
-      )}
-      <Hero onRun={handleRun} />
+      <SubHeader onRun={handleRun} thread={thread} fileName={fileName} lastResumeHtml={lastResumeHtml}/>
       <div className="cards-row">
         <UserInputCard userquery={userquery} setUserQuery={setUserQuery} />
         <DocumentInputCard handleFileChange={handleFileChange} />
