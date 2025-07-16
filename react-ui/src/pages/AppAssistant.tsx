@@ -170,6 +170,8 @@ const LandingPageAtomize = () => {
     ${jobdetails}
     `;
     payload.messages[0].content = userquery;
+    // placeholder user id
+    payload.user_id = "sloa1991"
     payload.file_input = {
       "file_data": fileBase64,
       "file_name": fileName
