@@ -9,7 +9,7 @@ import uuid
 import time
 import os
 
-from typing import Any
+from typing import Any, List
 from typing_extensions import TypedDict
 from proximaai.utils.structured_output import (
     ReasoningPlan, 
@@ -72,8 +72,10 @@ async def create_orchestrator_agent():
                 # Set Up Store - Postgres
                 await store.setup()
                 namespace = (state['user_id'] or 'unknown', 'resume_parse')
+
                 # Pull request input
                 file_input = state.get('file_input')
+                node_response: dict[str, List[dict[str, Any]]] = {"messages": [{}]}
 
                 # Check Cache
                 import hashlib
@@ -82,16 +84,16 @@ async def create_orchestrator_agent():
                 if cache_results:
                     logger.info("🔍 RESUME PARSE CACHE HIT")
                     memory = loads(cache_results.value["data"])
-                    state['messages'].append({ "type": "agent", "content": memory['content'][0]['text'] })
+                    node_response["messages"] = [{ "type": "agent", "content": memory['content'][0]['text'] }]
                 else:
                     # Parsing Agent
                     parse_agent = ResumeParsingAgent()
                     file_input = state.get('file_input')
                     if file_input:
                         result = await parse_agent.invoke(**file_input)
-                        state['messages'].append({ "type": "agent", "content": result['content'][0]['text'] })
+                        node_response["messages"] = [{ "type": "agent", "content": result['content'][0]['text'] }]
                     else:
-                        state['messages'].append({ "type": "agent", "content": "Unable to Parse Resume" })           
+                        node_response["messages"] = [{ "type": "agent", "content": "Unable to Parse Resume" }  ]        
 
                     logger.info("Push results to Database")
                     await store.aput(
@@ -198,7 +200,7 @@ async def create_orchestrator_agent():
             logger.info(f"🔄 WEBSEARCH NODE EXECUTION - Request ID: {request_id} | Time: {execution_time} | LangGraph Cache TTL: 1 second")
             
             async with AsyncPostgresStore.from_conn_string(os.getenv("DB_URI", "")) as store:
-                company_name = "Google"  # Default to Geico for now TODO: Make this dynamic
+                company_name = "Geico"  # Default to Geico for now TODO: Make this dynamic
                 # Set Up Store - Postgres
                 await store.setup()
                 namespace = (f"websearch_research", )
