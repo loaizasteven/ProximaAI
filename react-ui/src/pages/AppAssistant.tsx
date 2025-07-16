@@ -86,7 +86,7 @@ const UserInputCard = ({ userquery, setUserQuery }) => (
   </div>
 );
 
-const DocumentInputCard = ({ handleFileChange }) => (
+const DocumentInputCard = ({ key, handleFileChange }) => (
   <div className="card document-input">
     <div 
       className="image-placeholder" 
@@ -128,6 +128,7 @@ const LandingPageAtomize = () => {
   const [fileBase64, setFileBase64] = useState<string | null>(null);
   const [jobdetails, setJobDetails] = useState('');
   const [lastResumeHtml, setLastResumeHtml] = useState('');
+  const [fileInputKey, setFileInputKey] = useState(0);
 
   // LangGraph React.js flow
   const thread = useStream<{ messages: Message[] }>({
@@ -174,6 +175,13 @@ const LandingPageAtomize = () => {
       "file_name": fileName
     };
     thread.submit(payload);
+
+    // Reset state
+    setUserQuery('');
+    setJobDetails('');
+    setFileName('');
+    setFileBase64(null);
+    setFileInputKey(prev => prev + 1); // Add this line
   };
 
   return (
@@ -182,7 +190,7 @@ const LandingPageAtomize = () => {
       <SubHeader onRun={handleRun} thread={thread} fileName={fileName} lastResumeHtml={lastResumeHtml}/>
       <div className="cards-row">
         <UserInputCard userquery={userquery} setUserQuery={setUserQuery} />
-        <DocumentInputCard handleFileChange={handleFileChange} />
+        <DocumentInputCard key={fileInputKey} handleFileChange={handleFileChange} />
         <JobDescriptionCard jobdetails={jobdetails} setJobDetails={setJobDetails} />
       </div>
     </div>
