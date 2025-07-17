@@ -30,6 +30,11 @@ function App() {
     messagesKey: "messages",
   });
 
+  // Function Definitions
+  function EnterStage(){
+    return <button className='welcome-button fadeIn' onClick={() => setCurrentPage('main')}> Start your Journey </button>
+  }
+
   return (
     <div className="app-container">
       {(currentPage === 'welcome') && (
@@ -87,12 +92,13 @@ function App() {
     </div>
 }
       {currentPage === 'settings' && <div>Settings Page Coming Soon!</div>}
-      <Dock 
+
+      {currentPage === 'welcome'?<EnterStage/>:<Dock 
         items={items}
         panelHeight={68}
         baseItemSize={50}
         magnification={70}
-      />
+      />}
     </div>
   )
 }
