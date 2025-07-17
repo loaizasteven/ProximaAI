@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState } from 'react';
+import {BrowserRouter, Routes, Route} from "react-router-dom";
 import { VscHome, VscInfo, VscAccount, VscSettingsGear } from "react-icons/vsc";
 import './App.css'
 
@@ -6,6 +7,7 @@ import BlurText from './BlurText'
 import SplashCursor from './SplashCursor'
 import Dock from './Dock';
 
+import WelcomePage from './pages/WelcomePage';
 import LandingPage from './LandingPage';
 import AboutPage from './AboutPage';
 
@@ -30,76 +32,62 @@ function App() {
     messagesKey: "messages",
   });
 
-  // Function Definitions
-  function EnterStage(){
-    return <button className='welcome-button fadeIn' onClick={() => setCurrentPage('main')}> Start your Journey </button>
-  }
-
   return (
-    <div className="app-container">
-      {(currentPage === 'welcome') && (
-        <>
-          <h1><BlurText
-            text="Welcome to Proxima"
-            shinyTexts={["Designer","Builder", "AI"]}
-            stepDuration={0.35}
-            carouselInterval={1500}
-            delay={20}
-            animateBy="letters"
-            direction="top"
-            onAnimationComplete={() => {}}
-            className="text-2xl mb-8"
-          />
-          </h1>
-          <SplashCursor SPLAT_RADIUS={0.1}></SplashCursor>
-        </>
-      )}
-      {currentPage === 'main' && <LandingPage reset={resetDock}/>}
-      {currentPage === 'about' && (<AboutPage />)}
-      {currentPage === 'profile' && 
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<WelcomePage />} />
+        <Route path="/main" element={<LandingPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/products" element={<LandingPage />} />
+      </Routes>
+      <div className="app-container">
+        {currentPage === 'main' && <LandingPage reset={resetDock}/>}
+        {currentPage === 'about' && (<AboutPage />)}
+        {currentPage === 'profile' && 
+          <div>
         <div>
-      <div>
-        {thread.messages.map((message) => (
-          <div key={message.id}>
-            {typeof message.content === 'string' 
-              ? message.content 
-              : JSON.stringify(message.content)}
-          </div>
-        ))}
+          {thread.messages.map((message) => (
+            <div key={message.id}>
+              {typeof message.content === 'string' 
+                ? message.content 
+                : JSON.stringify(message.content)}
+            </div>
+          ))}
+        </div>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+
+            const form = e.target;
+            const message = new FormData(form).get("message");
+
+            form.reset();
+            thread.submit({ messages: [{ type: "human", content: message }], reasoning: "", current_step: "start" });
+          }}
+        >
+          <input type="text" name="message" />
+
+          {thread.isLoading ? (
+            <button key="stop" type="button" onClick={() => thread.stop()}>
+              Stop
+            </button>
+          ) : (
+            <button type="submit">Send</button>
+          )}
+        </form>
       </div>
+  }
+        {currentPage === 'settings' && <div>Settings Page Coming Soon!</div>}
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-
-          const form = e.target;
-          const message = new FormData(form).get("message");
-
-          form.reset();
-          thread.submit({ messages: [{ type: "human", content: message }], reasoning: "", current_step: "start" });
-        }}
-      >
-        <input type="text" name="message" />
-
-        {thread.isLoading ? (
-          <button key="stop" type="button" onClick={() => thread.stop()}>
-            Stop
-          </button>
-        ) : (
-          <button type="submit">Send</button>
-        )}
-      </form>
-    </div>
-}
-      {currentPage === 'settings' && <div>Settings Page Coming Soon!</div>}
-
-      {currentPage === 'welcome'?<EnterStage/>:<Dock 
-        items={items}
-        panelHeight={68}
-        baseItemSize={50}
-        magnification={70}
-      />}
-    </div>
+        {currentPage === 'welcome'?<></>:<Dock 
+          items={items}
+          panelHeight={68}
+          baseItemSize={50}
+          magnification={70}
+        />}
+      </div>
+    </BrowserRouter>
   )
 }
 
