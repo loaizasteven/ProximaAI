@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import {BrowserRouter, Routes, Route} from "react-router-dom";
+import { useLocation, Navigate, BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { VscHome, VscInfo, VscAccount, VscSettingsGear } from "react-icons/vsc";
 import './App.css'
 
-import BlurText from './BlurText'
-import SplashCursor from './SplashCursor'
+// UI Components
 import Dock from './Dock';
 
+// SubPages
 import WelcomePage from './pages/WelcomePage';
-import Authentication from './auth/Authentication';
+import Authentication, { useAuth, LoginForm } from './auth/Authentication';
 import LandingPage from './LandingPage';
 import AboutPage from './AboutPage';
 
@@ -16,81 +16,94 @@ import AboutPage from './AboutPage';
 
 import { useStream } from "@langchain/langgraph-sdk/react";
 
+function RequireAuth({ children }) {
+  const session = useAuth()
+  const location = useLocation();
+  if (!session) return <Navigate to="/login" replace state={{ from: location}}/>
+  return children
+}
+
 function App() {
   const [currentPage, setCurrentPage] = useState('welcome')
   const [resetDock, setResetDock] = useState(0)
-
-  const items = [
-    { icon: <VscHome size={18} color="white"/>, label: 'Home', onClick: () => { setCurrentPage('main'); setResetDock(r => r + 1); } },
-    { icon: <VscAccount size={18} color="white"/>, label: 'Profile', onClick: () => setCurrentPage('profile') },
-    { icon: <VscSettingsGear size={18} color="white"/>, label: 'Settings', onClick: () => setCurrentPage('settings') },
-    { icon: <VscInfo size={18} color="white"/>, label: 'About', onClick:() =>  setCurrentPage('about') }
-  ];
 
   const thread = useStream({
     apiUrl: "http://localhost:2024",
     assistantId: "main_agent",
     messagesKey: "messages",
   });
+  const navigate = useNavigate();
 
+  const items = [
+    { icon: <VscHome size={18} color="white"/>, label: 'Home', onClick: () => { navigate('/products'); setResetDock(r => r + 1); } },
+    { icon: <VscAccount size={18} color="white"/>, label: 'Profile', onClick: () => navigate('/about') },
+    { icon: <VscSettingsGear size={18} color="white"/>, label: 'Settings', onClick: () => navigate('/products') },
+    { icon: <VscInfo size={18} color="white"/>, label: 'About', onClick: () => navigate('/products') }
+  ];
+  
   return (
-    <BrowserRouter>
+    <Authentication>
       <Routes>
-        <Route path="/" element={<WelcomePage />} />
-        <Route path="/main" element={<LandingPage />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/products" element={<LandingPage />} />
-        <Route path="/loginin" element={<Authentication />} />
-      </Routes>
-      <div className="app-container">
-        {currentPage === 'main' && <LandingPage reset={resetDock}/>}
-        {currentPage === 'about' && (<AboutPage />)}
-        {currentPage === 'profile' && 
+          <Route path="/" element={<WelcomePage />} />
+          <Route path="/about" element={<RequireAuth><AboutPage /></RequireAuth>} />
+          <Route path="/products" element={<LandingPage />} />
+          <Route path="/login" element={<LoginForm />} />
+        </Routes>
+        <div className="app-container">
+          {/* {currentPage === 'main' && <LandingPage reset={resetDock}/>} */}
+          {/* {currentPage === 'about' && (<AboutPage />)} */}
+          {currentPage === 'profile' && 
+            <div>
           <div>
-        <div>
-          {thread.messages.map((message) => (
-            <div key={message.id}>
-              {typeof message.content === 'string' 
-                ? message.content 
-                : JSON.stringify(message.content)}
-            </div>
-          ))}
+            {thread.messages.map((message) => (
+              <div key={message.id}>
+                {typeof message.content === 'string' 
+                  ? message.content 
+                  : JSON.stringify(message.content)}
+              </div>
+            ))}
+          </div>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+
+              const form = e.target;
+              const message = new FormData(form).get("message");
+
+              form.reset();
+              thread.submit({ messages: [{ type: "human", content: message }], reasoning: "", current_step: "start" });
+            }}
+          >
+            <input type="text" name="message" />
+
+            {thread.isLoading ? (
+              <button key="stop" type="button" onClick={() => thread.stop()}>
+                Stop
+              </button>
+            ) : (
+              <button type="submit">Send</button>
+            )}
+          </form>
         </div>
+    }
+          {/* {currentPage === 'settings' && <div>Settings Page Coming Soon!</div>} */}
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-
-            const form = e.target;
-            const message = new FormData(form).get("message");
-
-            form.reset();
-            thread.submit({ messages: [{ type: "human", content: message }], reasoning: "", current_step: "start" });
-          }}
-        >
-          <input type="text" name="message" />
-
-          {thread.isLoading ? (
-            <button key="stop" type="button" onClick={() => thread.stop()}>
-              Stop
-            </button>
-          ) : (
-            <button type="submit">Send</button>
-          )}
-        </form>
-      </div>
-  }
-        {currentPage === 'settings' && <div>Settings Page Coming Soon!</div>}
-
-        {currentPage === 'welcome'?<></>:<Dock 
-          items={items}
-          panelHeight={68}
-          baseItemSize={50}
-          magnification={70}
-        />}
-      </div>
-    </BrowserRouter>
+          <Dock 
+            items={items}
+            panelHeight={68}
+            baseItemSize={50}
+            magnification={70}
+          />
+        </div>
+    </Authentication>
   )
 }
 
-export default App
+export default function AppWithRouter() {
+  return (
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  );
+}
