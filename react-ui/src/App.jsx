@@ -8,6 +8,7 @@ import SplashCursor from './SplashCursor'
 import Dock from './Dock';
 
 import WelcomePage from './pages/WelcomePage';
+import Authentication from './auth/Authentication';
 import LandingPage from './LandingPage';
 import AboutPage from './AboutPage';
 
@@ -39,6 +40,7 @@ function App() {
         <Route path="/main" element={<LandingPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/products" element={<LandingPage />} />
+        <Route path="/loginin" element={<Authentication />} />
       </Routes>
       <div className="app-container">
         {currentPage === 'main' && <LandingPage reset={resetDock}/>}
