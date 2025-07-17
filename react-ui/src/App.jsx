@@ -26,6 +26,8 @@ function RequireAuth({ children }) {
 function App() {
   const [currentPage, setCurrentPage] = useState('welcome')
   const [resetDock, setResetDock] = useState(0)
+  const location = useLocation();
+  const dockVisibleRoutes = ["/about", "/products"]; 
 
   const thread = useStream({
     apiUrl: "http://localhost:2024",
@@ -50,8 +52,6 @@ function App() {
           <Route path="/login" element={<LoginForm />} />
         </Routes>
         <div className="app-container">
-          {/* {currentPage === 'main' && <LandingPage reset={resetDock}/>} */}
-          {/* {currentPage === 'about' && (<AboutPage />)} */}
           {currentPage === 'profile' && 
             <div>
           <div>
@@ -87,14 +87,14 @@ function App() {
           </form>
         </div>
     }
-          {/* {currentPage === 'settings' && <div>Settings Page Coming Soon!</div>} */}
-
+          {dockVisibleRoutes.includes(location.pathname) && (
           <Dock 
             items={items}
             panelHeight={68}
             baseItemSize={50}
             magnification={70}
           />
+        )}
         </div>
     </Authentication>
   )
