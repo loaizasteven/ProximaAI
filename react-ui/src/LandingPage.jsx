@@ -53,28 +53,24 @@ function ProductCard(){
         navigate("/products/app-assistant")
     };
     return (
-        <>  
-            {
-                <>
-                    <h1><BlurText
-                        text="Welcome to Proxima"
-                        shinyTexts={["Designer","Builder", "AI"]}
-                        stepDuration={0.35}
-                        carouselInterval={1500}
-                        delay={20}
-                        animateBy="letters"
-                        direction="top"
-                        onAnimationComplete={() => {}}
-                        className="text-2xl mb-8"
-                    />
-                    </h1>
-                    <div className="landing-page-headline">
-                        ProximaAI is an AI-powered job search and resume assistant inspired by Anthropic's multi-agent research system. It leverages multi-agent technology and the Lang ecosystem to accelerate your career journey.
-                    </div>
-                </>
-            }
-            <LandingPageMain handleResumeBuilderClick={handleResumeBuilderClick} handleApplicationAssistantClick={handleApplicationAssistantClick} />
-        </>
+            <>
+                <h1><BlurText
+                    text="Welcome to Proxima"
+                    shinyTexts={["Designer","Builder", "AI"]}
+                    stepDuration={0.35}
+                    carouselInterval={1500}
+                    delay={20}
+                    animateBy="letters"
+                    direction="top"
+                    onAnimationComplete={() => {}}
+                    className="text-2xl mb-8"
+                />
+                </h1>
+                <div className="landing-page-headline">
+                    ProximaAI is an AI-powered job search and resume assistant inspired by Anthropic's multi-agent research system. It leverages multi-agent technology and the Lang ecosystem to accelerate your career journey.
+                </div>
+                <LandingPageMain handleResumeBuilderClick={handleResumeBuilderClick} handleApplicationAssistantClick={handleApplicationAssistantClick} />
+            </>
     );
 }
 
