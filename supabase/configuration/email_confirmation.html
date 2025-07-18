@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Confirm Your Email – ProximaAI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <style>
+      body {
+        background: #f4f6fb;
+        font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        color: #222;
+      }
+      .container {
+        max-width: 480px;
+        margin: 40px auto;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 24px rgba(60,72,88,0.08);
+        padding: 40px 32px 32px 32px;
+      }
+      .logo {
+        text-align: center;
+        margin-bottom: 24px;
+      }
+      .logo-text {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #3b82f6;
+        letter-spacing: 1px;
+      }
+      h2 {
+        text-align: center;
+        color: #22223b;
+        margin-bottom: 12px;
+        font-size: 1.5rem;
+      }
+      p {
+        font-size: 1.08rem;
+        line-height: 1.6;
+        margin: 0 0 18px 0;
+        color: #444;
+      }
+      .button-wrapper {
+        text-align: center;
+        margin: 32px 0 18px 0;
+      }
+      .button {
+        background: linear-gradient(90deg, #3b82f6 0%, #6366f1 100%);
+        color: #fff !important;
+        padding: 14px 36px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 1.1rem;
+        box-shadow: 0 2px 8px rgba(59,130,246,0.10);
+        transition: background 0.2s;
+        display: inline-block;
+      }
+      .button:hover {
+        background: linear-gradient(90deg, #2563eb 0%, #4f46e5 100%);
+      }
+      .footer {
+        margin-top: 32px;
+        font-size: 0.95rem;
+        color: #a0aec0;
+        text-align: center;
+      }
+      @media (max-width: 600px) {
+        .container {
+          padding: 24px 8px 16px 8px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="logo">
+        <span class="logo-text">ProximaAI</span>
+      </div>
+      <h2>Just one more step!</h2>
+      <p>
+        Hi there,<br>
+        Thanks for joining <strong>ProximaAI</strong>! To get started, please confirm your email address by clicking the button below.
+      </p>
+      <div class="button-wrapper">
+        <a href="{{ .ConfirmationURL }}" class="button">Confirm My Email</a>
+      </div>
+      <p>
+        If you didn’t sign up for ProximaAI, you can safely ignore this email.
+      </p>
+      <div class="footer">
+        &copy; 2025 ProximaAI &mdash; Empowering your next move.
+      </div>
+    </div>
+  </body>
+</html>
