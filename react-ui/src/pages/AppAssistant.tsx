@@ -86,7 +86,7 @@ const UserInputCard = ({ userquery, setUserQuery }) => (
   </div>
 );
 
-const DocumentInputCard = ({ key, handleFileChange }) => (
+const DocumentInputCard = ({ handleFileChange }) => (
   <div className="card document-input">
     <div 
       className="image-placeholder" 

@@ -1,100 +1,68 @@
-import { useState } from 'react'
+import { useState } from 'react';
+import { useLocation, Navigate, BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { VscHome, VscInfo, VscAccount, VscSettingsGear } from "react-icons/vsc";
 import './App.css'
 
-import BlurText from './BlurText'
-import SplashCursor from './SplashCursor'
+// UI Components
 import Dock from './Dock';
 
+// SubPages
+import WelcomePage from './pages/WelcomePage';
+import Authentication, { useAuth, LoginForm } from './auth/Authentication';
 import LandingPage from './LandingPage';
 import AboutPage from './AboutPage';
+import AppAssistant from './pages/AppAssistant'
 
 "use client";
 
 import { useStream } from "@langchain/langgraph-sdk/react";
 
+function RequireAuth({ children }) {
+  const session = useAuth()
+  const location = useLocation();
+  if (!session) return <Navigate to="/login" replace state={{ from: location}}/>
+  return children
+}
+
 function App() {
-  const [currentPage, setCurrentPage] = useState('welcome')
-  const [resetDock, setResetDock] = useState(0)
+  const location = useLocation();
+  const dockVisibleRoutes = ["/about", "/products"]; 
+  const navigate = useNavigate();
 
   const items = [
-    { icon: <VscHome size={18} color="white"/>, label: 'Home', onClick: () => { setCurrentPage('main'); setResetDock(r => r + 1); } },
-    { icon: <VscAccount size={18} color="white"/>, label: 'Profile', onClick: () => setCurrentPage('profile') },
-    { icon: <VscSettingsGear size={18} color="white"/>, label: 'Settings', onClick: () => setCurrentPage('settings') },
-    { icon: <VscInfo size={18} color="white"/>, label: 'About', onClick:() =>  setCurrentPage('about') }
+    { icon: <VscHome size={18} color="white"/>, label: 'Home', onClick: () => { navigate('/products') } },
+    { icon: <VscAccount size={18} color="white"/>, label: 'Profile', onClick: () => navigate('/about') },
+    { icon: <VscSettingsGear size={18} color="white"/>, label: 'Settings', onClick: () => navigate('/products') },
+    { icon: <VscInfo size={18} color="white"/>, label: 'About', onClick: () => navigate('/products') }
   ];
-
-  const thread = useStream({
-    apiUrl: "http://localhost:2024",
-    assistantId: "main_agent",
-    messagesKey: "messages",
-  });
-
+  
   return (
-    <div className="app-container">
-      {(currentPage === 'welcome') && (
-        <>
-          <h1><BlurText
-            text="Welcome to Proxima"
-            shinyTexts={["Designer","Builder", "AI"]}
-            stepDuration={0.35}
-            carouselInterval={1500}
-            delay={20}
-            animateBy="letters"
-            direction="top"
-            onAnimationComplete={() => {}}
-            className="text-2xl mb-8"
-          />
-          </h1>
-          <SplashCursor SPLAT_RADIUS={0.1}></SplashCursor>
-        </>
-      )}
-      {currentPage === 'main' && <LandingPage reset={resetDock}/>}
-      {currentPage === 'about' && (<AboutPage />)}
-      {currentPage === 'profile' && 
+    <Authentication>
+      <Routes>
+          <Route path="/" element={<WelcomePage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/products" element={<LandingPage />} />
+          <Route path="/products/app-assistant" element={<RequireAuth><AppAssistant/></RequireAuth>} />
+          <Route path="/login" element={<LoginForm />} />
+        </Routes>
         <div>
-      <div>
-        {thread.messages.map((message) => (
-          <div key={message.id}>
-            {typeof message.content === 'string' 
-              ? message.content 
-              : JSON.stringify(message.content)}
-          </div>
-        ))}
-      </div>
-
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-
-          const form = e.target;
-          const message = new FormData(form).get("message");
-
-          form.reset();
-          thread.submit({ messages: [{ type: "human", content: message }], reasoning: "", current_step: "start" });
-        }}
-      >
-        <input type="text" name="message" />
-
-        {thread.isLoading ? (
-          <button key="stop" type="button" onClick={() => thread.stop()}>
-            Stop
-          </button>
-        ) : (
-          <button type="submit">Send</button>
+          {dockVisibleRoutes.includes(location.pathname) && (
+          <Dock 
+            items={items}
+            panelHeight={68}
+            baseItemSize={50}
+            magnification={70}
+          />
         )}
-      </form>
-    </div>
-}
-      {currentPage === 'settings' && <div>Settings Page Coming Soon!</div>}
-      <Dock 
-        items={items}
-        panelHeight={68}
-        baseItemSize={50}
-        magnification={70}
-      />
-    </div>
+        </div>
+    </Authentication>
   )
 }
 
-export default App
+export default function AppWithRouter() {
+  return (
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  );
+}

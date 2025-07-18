@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import './LandingPage.css'
-import AppAssistant from './pages/AppAssistant';
+import { useNavigate } from "react-router-dom";
 import BlurText from './BlurText';
 
 import logo from './assets/react.svg';
@@ -44,56 +44,40 @@ function LandingPageMain({ handleResumeBuilderClick, handleApplicationAssistantC
     )
 }
 
-function ProductCard({ reset }){
-    const [showAssistant, setShowAssistant] = useState(false);
-    const [showLanding, setShowLanding] = useState(true);
-
-    React.useEffect(() => {
-        console.log("reset is %reset", reset)
-        if (reset) {
-            setShowLanding(true);
-            setShowAssistant(false);
-        }
-    }, [reset]);
-
+function ProductCard(){
+    const navigate = useNavigate();
     const handleResumeBuilderClick = () => {
         alert('Veloa Resume Builder Coming Soon!');
     };
     const handleApplicationAssistantClick = () => {
-        setShowLanding(false);
-        setShowAssistant(true);
+        navigate("/products/app-assistant")
     };
     return (
-        <>  
-            {showLanding && 
-                <>
-                    <h1><BlurText
-                        text="Welcome to Proxima"
-                        shinyTexts={["Designer","Builder", "AI"]}
-                        stepDuration={0.35}
-                        carouselInterval={1500}
-                        delay={20}
-                        animateBy="letters"
-                        direction="top"
-                        onAnimationComplete={() => {}}
-                        className="text-2xl mb-8"
-                    />
-                    </h1>
-                    <div className="landing-page-headline">
-                        ProximaAI is an AI-powered job search and resume assistant inspired by Anthropic's multi-agent research system. It leverages multi-agent technology and the Lang ecosystem to accelerate your career journey.
-                    </div>
-                </>
-            }
-            {showLanding && <LandingPageMain handleResumeBuilderClick={handleResumeBuilderClick} handleApplicationAssistantClick={handleApplicationAssistantClick} />}
-            {showAssistant && <AppAssistant />}
-        </>
+            <>
+                <h1><BlurText
+                    text="Welcome to Proxima"
+                    shinyTexts={["Designer","Builder", "AI"]}
+                    stepDuration={0.35}
+                    carouselInterval={1500}
+                    delay={20}
+                    animateBy="letters"
+                    direction="top"
+                    onAnimationComplete={() => {}}
+                    className="text-2xl mb-8"
+                />
+                </h1>
+                <div className="landing-page-headline">
+                    ProximaAI is an AI-powered job search and resume assistant inspired by Anthropic's multi-agent research system. It leverages multi-agent technology and the Lang ecosystem to accelerate your career journey.
+                </div>
+                <LandingPageMain handleResumeBuilderClick={handleResumeBuilderClick} handleApplicationAssistantClick={handleApplicationAssistantClick} />
+            </>
     );
 }
 
-const LandingPage = ({reset}) => (
+const LandingPage = () => (
   <>
   <div className="product-card-container">
-    <ProductCard reset={reset}/>
+    <ProductCard/>
   </div>
   </>
 
