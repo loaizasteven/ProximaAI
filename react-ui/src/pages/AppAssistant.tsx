@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import '../styling/AppAssistant.css';
 
 import { useStream } from "@langchain/langgraph-sdk/react";
