@@ -51,42 +51,7 @@ function App() {
           <Route path="/products" element={<LandingPage />} />
           <Route path="/login" element={<LoginForm />} />
         </Routes>
-        <div className="app-container">
-          {currentPage === 'profile' && 
-            <div>
-          <div>
-            {thread.messages.map((message) => (
-              <div key={message.id}>
-                {typeof message.content === 'string' 
-                  ? message.content 
-                  : JSON.stringify(message.content)}
-              </div>
-            ))}
-          </div>
-
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-
-              const form = e.target;
-              const message = new FormData(form).get("message");
-
-              form.reset();
-              thread.submit({ messages: [{ type: "human", content: message }], reasoning: "", current_step: "start" });
-            }}
-          >
-            <input type="text" name="message" />
-
-            {thread.isLoading ? (
-              <button key="stop" type="button" onClick={() => thread.stop()}>
-                Stop
-              </button>
-            ) : (
-              <button type="submit">Send</button>
-            )}
-          </form>
-        </div>
-    }
+        <div>
           {dockVisibleRoutes.includes(location.pathname) && (
           <Dock 
             items={items}
