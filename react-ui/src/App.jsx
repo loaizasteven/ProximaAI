@@ -24,7 +24,6 @@ function RequireAuth({ children }) {
 }
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('welcome')
   const [resetDock, setResetDock] = useState(0)
   const location = useLocation();
   const dockVisibleRoutes = ["/about", "/products"]; 
