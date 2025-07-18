@@ -12,7 +12,8 @@
     import.meta.env.VITE_SUPABASE_KEY
   )
   export const AuthContext = createContext(null)
-  
+  export const SupabaseContext = createContext(supabase);
+
  function Authentication({ children }) {
     const [session, setSession] = useState(null)
 
@@ -22,9 +23,11 @@
       return () => subscription.unsubscribe()
     }, [])  
     return (
-      <AuthContext.Provider value={session}>
-        {children}
-      </AuthContext.Provider>
+      <SupabaseContext.Provider value={supabase}>
+        <AuthContext.Provider value={session}>
+          {children}
+        </AuthContext.Provider>
+      </SupabaseContext.Provider>
     )
   }
 
@@ -34,6 +37,9 @@
   export function useAuth() {
     return useContext(AuthContext)
   };
+  export function useSupabase() {
+    return useContext(SupabaseContext);
+  }
 
   export function LoginForm() {
     const session = useAuth();

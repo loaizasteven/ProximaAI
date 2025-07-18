@@ -1,22 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../styling/AppAssistant.css';
 
 import { useStream } from "@langchain/langgraph-sdk/react";
 import type { Message } from "@langchain/langgraph-sdk";
+
+import { useSupabase, useAuth } from '../auth/Authentication';
 
 const galaxy = "https://images.unsplash.com/photo-1750292836196-3aafd7645c08?q=80&w=1728&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
 const sphere = "https://plus.unsplash.com/premium_photo-1752113495331-165d1b5b749a?q=80&w=3132&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
 const spiral = "https://images.unsplash.com/photo-1750969393822-36e48a31895f?q=80&w=1180&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
 
 // Header component
-const Header = () => (
-  <header className="atomize-header">
-    <div className="logo-nav">
-      {/* <img src={reactLogo} alt="Logo" className="logo" /> */}
-      <span className="brand">ProximaAI</span>
-    </div>
-  </header>
-);
+const Header = () => {
+  const supabase = useSupabase();
+  const session = useAuth();
+  const [credits, setCredits] = useState(null);
+  const userId = (session as any)?.user?.id;
+  
+
+  useEffect(() => {
+    const fetchCreditsInitial = async () => {
+      console.log({
+        p_user_id: userId as string,
+        p_credits_to_spend: 1
+      })
+      const { data, error } = await supabase.rpc('spend_credits', 
+        {
+          p_user_id: userId,
+          p_credits_to_spend: 0
+        }
+      );
+      if (error) {
+        // handle error if needed
+        setCredits(null);
+      } else {
+        setCredits(data);
+      }
+    };
+    fetchCreditsInitial();
+  }, [supabase]);
+
+  return (
+    <header className="atomize-header">
+      <div className="logo-nav">
+        {/* <img src={reactLogo} alt="Logo" className="logo" /> */}
+        <span className="brand">ProximaAI</span>
+      </div>
+      <span className="credits" ><b>Application Credits:</b> {credits}</span>
+    </header>
+  );
+};
 // SubHeader section
 const SubHeader = ({ onRun, thread, fileName, lastResumeHtml }) => (
   <section className="atomize-hero">
