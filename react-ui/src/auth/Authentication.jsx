@@ -6,11 +6,6 @@
   import { Auth } from '@supabase/auth-ui-react'
   import { ThemeSupa } from '@supabase/auth-ui-shared'
 
-  async function signOut() {
-    // sign out from the current session only
-    const { error } = await supabase.auth.signOut({ scope: 'local' })
-  }
-
   // Define Const
   const supabase = createClient(
     import.meta.env.VITE_SUPABASE_URL, 
@@ -20,6 +15,10 @@
   
  function Authentication({ children }) {
     const [session, setSession] = useState(null)
+    async function signOut() {
+      // sign out from the current session only
+      const { error } = await supabase.auth.signOut({ scope: 'local' })
+    }
 
     useEffect(() => {
       supabase.auth.getSession().then(({ data: { session } }) => {setSession(session)})
