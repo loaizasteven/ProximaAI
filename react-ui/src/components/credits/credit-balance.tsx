@@ -62,7 +62,7 @@ export function CreditBalance({
     badgeStyle = { ...badgeStyle, background: 'red', color: 'white'};
   } else {
     // Default badge style (e.g., black background, white text)
-    badgeStyle = { ...badgeStyle, background: 'lightGrey', color: 'black' };
+    badgeStyle = { ...badgeStyle, background: 'lightgray', color: 'black' };
   }
   if (className) badgeClass += ` ${className}`;
 
