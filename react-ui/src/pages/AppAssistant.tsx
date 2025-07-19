@@ -192,7 +192,6 @@ const LandingPageAtomize = () => {
     // Update Credit Usage
     await CreditUpdate({ authenticated: !!session, credit_usage: 1, supabase, session });
     setRefreshCredits(prev => prev + 1); // This will trigger CreditBalance to refetch
-    console.log(refreshCredits)
     // Reset state
     setUserQuery('');
     setJobDetails('');
