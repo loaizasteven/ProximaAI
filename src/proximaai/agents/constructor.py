@@ -30,11 +30,15 @@ class TextConstructorAgent(BaseModel):
 
     @staticmethod
     def __format_response(value: str) -> str:
+        # Remove surrounding quotes if present
         if value.startswith('"') and value.endswith('"'):
-                value = value[1:-1]
+            value = value[1:-1]
 
-        clean_text = value.replace('\\n', '\n').replace('\\"', '"').replace('\\t', '\t')
-        return clean_text
+        # Decode all escaped sequences (e.g., \n, \t, \", etc.)
+        value = bytes(value, "utf-8").decode("unicode_escape")
+
+        # Optionally, strip leading/trailing whitespace
+        return value.strip()
 
     @staticmethod
     def strip_code_block(text):
