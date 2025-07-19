@@ -3,7 +3,7 @@
 ```mermaid
 sequenceDiagram
     participant CA as "Client App"
-    participant AP as "Auth Provider"
+    participant AP as "Auth Provider (Supabase)"
     participant LB as "LangGraph Backend"
     CA->>AP: 1. Login (username/password)
     AP-->>CA: 2. Return token
