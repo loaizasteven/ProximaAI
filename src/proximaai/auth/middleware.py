@@ -45,9 +45,16 @@ async def is_valid_key(auth_header: Any,):
     return False, None
 
 @auth.authenticate
-async def authenticate(headers: dict) -> Auth.types.MinimalUserDict:
+async def authenticate(method: str,
+        path: str,
+        headers: dict[bytes, bytes]) -> Auth.types.MinimalUserDict:
     # Validate credentials (e.g., API key, JWT token)
-    auth_header = headers.get(b"x-api-key")
+    if method == 'OPTIONS':
+         return {
+        "identity": 'anonymous',        
+        "is_authenticated": False,      
+    }
+    auth_header = headers.get(b'x-api-key')
     valid, user_id = await is_valid_key(auth_header)
 
     # Return user info - only identity and is_authenticated are required
