@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import '../styling/AppAssistant.css';
 
 import { useStream } from "@langchain/langgraph-sdk/react";
 import type { Message } from "@langchain/langgraph-sdk";
 
 import {CreditBalance} from '@/components/credits/credit-balance'
+import {CreditUpdate} from '@/providers/Credits'
+import { useAuth, useSupabase } from '@/auth/Authentication';
 
 const galaxy = "https://images.unsplash.com/photo-1750292836196-3aafd7645c08?q=80&w=1728&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
 const sphere = "https://plus.unsplash.com/premium_photo-1752113495331-165d1b5b749a?q=80&w=3132&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
@@ -134,6 +136,8 @@ const LandingPageAtomize = () => {
   const [jobdetails, setJobDetails] = useState('');
   const [lastResumeHtml, setLastResumeHtml] = useState('');
   const [fileInputKey, setFileInputKey] = useState(0);
+  const supabase = useSupabase();
+  const session = useAuth();
 
   // LangGraph React.js flow
   const thread = useStream<{ messages: Message[] }>({
@@ -164,7 +168,7 @@ const LandingPageAtomize = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleRun = () => {
+  const handleRun = async () => {
     // Use userquery, fileName, fileBase64 as needed
     // Construct the thread payload
     const humanMessage = `
@@ -183,6 +187,8 @@ const LandingPageAtomize = () => {
     };
     thread.submit(payload);
 
+    // Update Credit Usage
+    await CreditUpdate({ authenticated: session? true: false, credit_usage: 1, supabase: supabase, session: session})
     // Reset state
     setUserQuery('');
     setJobDetails('');
