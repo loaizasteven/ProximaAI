@@ -13,14 +13,14 @@ const sphere = "https://plus.unsplash.com/premium_photo-1752113495331-165d1b5b74
 const spiral = "https://images.unsplash.com/photo-1750969393822-36e48a31895f?q=80&w=1180&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
 
 // Header component
-const Header = () => {
+const Header = ({ refresh_key }) => {
   return (
     <header className="atomize-header">
       <div className="logo-nav">
         {/* <img src={reactLogo} alt="Logo" className="logo" /> */}
         <span className="brand">ProximaAI</span>
       </div>
-      <span ><CreditBalance/ ></span>
+      <span ><CreditBalance refresh_key={refresh_key} /></span>
     </header>
   );
 };
@@ -138,6 +138,7 @@ const LandingPageAtomize = () => {
   const [fileInputKey, setFileInputKey] = useState(0);
   const supabase = useSupabase();
   const session = useAuth();
+  const [refreshCredits, setRefreshCredits] = useState(0);
 
   // LangGraph React.js flow
   const thread = useStream<{ messages: Message[] }>({
@@ -180,7 +181,7 @@ const LandingPageAtomize = () => {
     `;
     payload.messages[0].content = userquery;
     // placeholder user id
-    payload.user_id = "sloa1991"
+    payload.user_id = session?.user?.id;
     payload.file_input = {
       "file_data": fileBase64,
       "file_name": fileName
@@ -188,7 +189,9 @@ const LandingPageAtomize = () => {
     thread.submit(payload);
 
     // Update Credit Usage
-    await CreditUpdate({ authenticated: session? true: false, credit_usage: 1, supabase: supabase, session: session})
+    await CreditUpdate({ authenticated: !!session, credit_usage: 1, supabase, session });
+    setRefreshCredits(prev => prev + 1); // This will trigger CreditBalance to refetch
+    console.log(refreshCredits)
     // Reset state
     setUserQuery('');
     setJobDetails('');
@@ -199,7 +202,7 @@ const LandingPageAtomize = () => {
 
   return (
     <div className="atomize-root">
-      <Header />
+      <Header refresh_key={refreshCredits} />
       <SubHeader onRun={handleRun} thread={thread} fileName={fileName} lastResumeHtml={lastResumeHtml}/>
       <div className="cards-row">
         <UserInputCard userquery={userquery} setUserQuery={setUserQuery} />

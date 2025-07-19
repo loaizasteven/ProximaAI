@@ -5,11 +5,13 @@ import { useSupabase, useAuth } from '@/auth/Authentication';
 interface CreditBalanceProps {
   className?: string;
   showIcon?: boolean;
+  refresh_key?: number;
 }
 
 export function CreditBalance({
   className,
   showIcon = true,
+  refresh_key,
 }: CreditBalanceProps) {
   const supabase = useSupabase();
   const session = useAuth();
@@ -36,7 +38,7 @@ export function CreditBalance({
       setLoading(false);
     };
     fetchCredits();
-  }, [supabase, userId]);
+  }, [supabase, userId, refresh_key]);
 
   if (!session) return null;
 
