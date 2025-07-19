@@ -29,6 +29,16 @@
   font-size: 1.2rem;
   letter-spacing: 1px;
 }
+.credits {
+  font-weight: 500;
+  align-items: flex-end;
+  font-size: 0.5rem;
+  align-content: center;
+  letter-spacing: 1px;
+  border-radius: 3ch;
+  padding: 1ch;
+  background-color: rgb(216, 134, 216);
+}
 .doc-btn {
   background: #f5f6fa;
   border: none;

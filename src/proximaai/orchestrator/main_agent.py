@@ -9,7 +9,7 @@ import uuid
 import time
 import os
 
-from typing import Any, List
+from typing import Any, List, Union
 from typing_extensions import TypedDict
 from proximaai.utils.structured_output import (
     ReasoningPlan, 
@@ -67,7 +67,7 @@ async def create_orchestrator_agent():
     async with AsyncPostgresStore.from_conn_string(os.getenv("DB_URI", "")) as store:
         await store.setup()
         
-        async def resume_parse(state: OrchestratorState) -> OrchestratorState:
+        async def resume_parse(state: OrchestratorState) -> dict:
             async with AsyncPostgresStore.from_conn_string(os.getenv("DB_URI", "")) as store:
                 # Set Up Store - Postgres
                 await store.setup()
@@ -75,7 +75,7 @@ async def create_orchestrator_agent():
 
                 # Pull request input
                 file_input = state.get('file_input')
-                node_response: dict[str, List[dict[str, Any]]] = {"messages": [{}]}
+                node_response: dict[str, Union[List[dict[str, Any]], Any]] = {"messages": [{}]}
 
                 # Check Cache
                 import hashlib
@@ -105,8 +105,9 @@ async def create_orchestrator_agent():
                         ttl=10080 # 1 week
                     )
                 # Mask Value    
-                state['file_input']['file_data'] = "MASKED"     
-                return state
+                node_response['file_input'] = state['file_input']
+                node_response['file_input']['file_data'] = "MASKED"     
+                return node_response
 
         def resume_designer(state: OrchestratorState) -> dict:
             """Agent rewrites the resume as markdown tailored to the company/job, with section-by-section reasoning."""

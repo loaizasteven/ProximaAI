@@ -1,29 +1,36 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import '../styling/AppAssistant.css';
 
 import { useStream } from "@langchain/langgraph-sdk/react";
 import type { Message } from "@langchain/langgraph-sdk";
+
+import {CreditBalance} from '@/components/credits/credit-balance'
+import {CreditUpdate} from '@/providers/Credits'
+import { useAuth, useSupabase } from '@/auth/Authentication';
 
 const galaxy = "https://images.unsplash.com/photo-1750292836196-3aafd7645c08?q=80&w=1728&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
 const sphere = "https://plus.unsplash.com/premium_photo-1752113495331-165d1b5b749a?q=80&w=3132&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
 const spiral = "https://images.unsplash.com/photo-1750969393822-36e48a31895f?q=80&w=1180&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
 
 // Header component
-const Header = () => (
-  <header className="atomize-header">
-    <div className="logo-nav">
-      {/* <img src={reactLogo} alt="Logo" className="logo" /> */}
-      <span className="brand">ProximaAI</span>
-    </div>
-  </header>
-);
+const Header = ({ refresh_key }) => {
+  return (
+    <header className="atomize-header">
+      <div className="logo-nav">
+        {/* <img src={reactLogo} alt="Logo" className="logo" /> */}
+        <span className="brand">ProximaAI</span>
+      </div>
+      <span ><CreditBalance refresh_key={refresh_key} /></span>
+    </header>
+  );
+};
 // SubHeader section
 const SubHeader = ({ onRun, thread, fileName, lastResumeHtml }) => (
   <section className="atomize-hero">
     <h1>Resume Designer Agent</h1>
     <p className="subtitle">
       Our Multi Agent System helps users tailor their resume to the target job role with the application process.
-      {lastResumeHtml &&
+      {lastResumeHtml && 
         <span>
         Your resume is ready{" "}
         <a
@@ -129,6 +136,9 @@ const LandingPageAtomize = () => {
   const [jobdetails, setJobDetails] = useState('');
   const [lastResumeHtml, setLastResumeHtml] = useState('');
   const [fileInputKey, setFileInputKey] = useState(0);
+  const supabase = useSupabase();
+  const session = useAuth();
+  const [refreshCredits, setRefreshCredits] = useState(0);
 
   // LangGraph React.js flow
   const thread = useStream<{ messages: Message[] }>({
@@ -159,9 +169,10 @@ const LandingPageAtomize = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleRun = () => {
+  const handleRun = async () => {
     // Use userquery, fileName, fileBase64 as needed
     // Construct the thread payload
+    setLastResumeHtml(null); // Clear previous HTML state
     const humanMessage = `
     ${userquery}
 
@@ -171,13 +182,16 @@ const LandingPageAtomize = () => {
     `;
     payload.messages[0].content = userquery;
     // placeholder user id
-    payload.user_id = "sloa1991"
+    payload.user_id = session?.user?.id;
     payload.file_input = {
       "file_data": fileBase64,
       "file_name": fileName
     };
     thread.submit(payload);
 
+    // Update Credit Usage
+    await CreditUpdate({ authenticated: !!session, credit_usage: 1, supabase, session });
+    setRefreshCredits(prev => prev + 1); // This will trigger CreditBalance to refetch
     // Reset state
     setUserQuery('');
     setJobDetails('');
@@ -188,8 +202,8 @@ const LandingPageAtomize = () => {
 
   return (
     <div className="atomize-root">
-      <Header />
-      <SubHeader onRun={handleRun} thread={thread} fileName={fileName} lastResumeHtml={lastResumeHtml}/>
+      <Header refresh_key={refreshCredits} />
+      <SubHeader onRun={handleRun} thread={thread} fileName={fileName} lastResumeHtml={lastResumeHtml} />
       <div className="cards-row">
         <UserInputCard userquery={userquery} setUserQuery={setUserQuery} />
         <DocumentInputCard key={fileInputKey} handleFileChange={handleFileChange} />

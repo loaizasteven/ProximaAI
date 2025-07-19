@@ -12,13 +12,10 @@
     import.meta.env.VITE_SUPABASE_KEY
   )
   export const AuthContext = createContext(null)
-  
+  export const SupabaseContext = createContext(supabase);
+
  function Authentication({ children }) {
     const [session, setSession] = useState(null)
-    async function signOut() {
-      // sign out from the current session only
-      const { error } = await supabase.auth.signOut({ scope: 'local' })
-    }
 
     useEffect(() => {
       supabase.auth.getSession().then(({ data: { session } }) => {setSession(session)})
@@ -26,9 +23,11 @@
       return () => subscription.unsubscribe()
     }, [])  
     return (
-      <AuthContext.Provider value={session}>
-        {children}
-      </AuthContext.Provider>
+      <SupabaseContext.Provider value={supabase}>
+        <AuthContext.Provider value={session}>
+          {children}
+        </AuthContext.Provider>
+      </SupabaseContext.Provider>
     )
   }
 
@@ -38,13 +37,20 @@
   export function useAuth() {
     return useContext(AuthContext)
   };
+  export function useSupabase() {
+    return useContext(SupabaseContext);
+  }
 
   export function LoginForm() {
     const session = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
     const from = location.state?.from?.pathname || "/products";
-
+    async function signOut() {
+      // sign out from the current session only
+      const { error } = await supabase.auth.signOut({ scope: 'local' })
+    }
+    
     useEffect(() => {
       if (session) {
         navigate(from, { replace: true });
