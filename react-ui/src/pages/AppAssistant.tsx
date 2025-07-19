@@ -25,12 +25,12 @@ const Header = ({ refresh_key }) => {
   );
 };
 // SubHeader section
-const SubHeader = ({ onRun, thread, fileName, lastResumeHtml }) => (
+const SubHeader = ({ onRun, thread, fileName, lastResumeHtml, Loading }) => (
   <section className="atomize-hero">
     <h1>Resume Designer Agent</h1>
     <p className="subtitle">
       Our Multi Agent System helps users tailor their resume to the target job role with the application process.
-      {lastResumeHtml &&
+      {lastResumeHtml && !Loading &&
         <span>
         Your resume is ready{" "}
         <a
@@ -139,6 +139,7 @@ const LandingPageAtomize = () => {
   const supabase = useSupabase();
   const session = useAuth();
   const [refreshCredits, setRefreshCredits] = useState(0);
+  const [loading, setLoading] = useState(false);
 
   // LangGraph React.js flow
   const thread = useStream<{ messages: Message[] }>({
@@ -193,6 +194,7 @@ const LandingPageAtomize = () => {
     setRefreshCredits(prev => prev + 1); // This will trigger CreditBalance to refetch
     console.log(refreshCredits)
     // Reset state
+    setLoading(true);
     setUserQuery('');
     setJobDetails('');
     setFileName('');
@@ -203,7 +205,7 @@ const LandingPageAtomize = () => {
   return (
     <div className="atomize-root">
       <Header refresh_key={refreshCredits} />
-      <SubHeader onRun={handleRun} thread={thread} fileName={fileName} lastResumeHtml={lastResumeHtml}/>
+      <SubHeader onRun={handleRun} thread={thread} fileName={fileName} lastResumeHtml={lastResumeHtml} Loading={loading}/>
       <div className="cards-row">
         <UserInputCard userquery={userquery} setUserQuery={setUserQuery} />
         <DocumentInputCard key={fileInputKey} handleFileChange={handleFileChange} />
