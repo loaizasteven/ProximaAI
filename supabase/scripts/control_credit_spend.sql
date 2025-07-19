@@ -31,4 +31,4 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-GRANT EXECUTE ON FUNCTION public.spend_credits(UUID, INTEGER) TO authenticated, anon;
+GRANT EXECUTE ON FUNCTION public.spend_credits(UUID, INTEGER) TO authenticated;
