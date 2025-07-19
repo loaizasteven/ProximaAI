@@ -31,7 +31,7 @@
 }
 .credits {
   font-weight: 500;
-  align-items: right;
+  align-items: flex-end;
   font-size: 0.5rem;
   align-content: center;
   letter-spacing: 1px;
