@@ -1,3 +1,4 @@
+from click import Option
 from pydantic import BaseModel, model_validator
 from typing import Optional, Any
 import json
@@ -13,11 +14,13 @@ class ResumeParsingAgent(BaseModel):
     tool_name: str = "parse_document"
     client: Optional[MCPCommunication] = None
     model_config= {"arbitrary_types_allowed": True}
+    jwt: Optional[str] = None
 
     def model_post_init(self, context: Any, /) -> None:
         server_base_url = os.getenv("LANGGRAPH_MCP_BASE_URL", "")
         self.client = MCPCommunication(
-            mcp_server_url=urljoin(server_base_url, self.tool_name + "/mcp")
+            mcp_server_url=urljoin(server_base_url, self.tool_name + "/mcp"),
+            jwt=self.jwt
         )
         return super().model_post_init(context)
 
