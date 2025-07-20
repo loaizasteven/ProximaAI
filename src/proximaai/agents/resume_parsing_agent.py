@@ -41,7 +41,12 @@ class ResumeParsingAgent(BaseModel):
             )
         try:
             async with httpx.AsyncClient() as client:
-                result = await client.get(urljoin(base=server_base_url, url=subpath))
+                result = await client.get(
+                    urljoin(base=server_base_url, url=subpath),
+                    headers={
+                        "x-api-key": f"Bearer {self.jwt}"
+                    }
+                    )
             return result
         except BaseException as e:
             error_content = json.dumps({"detail": "Server not running"}).encode("utf-8")
