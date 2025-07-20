@@ -103,5 +103,5 @@ async def on_thread_create(
 async def authorize_store(ctx: Auth.types.AuthContext, value: dict):
     # The "namespace" field for each store item is a tuple you can think of as the directory of an item.
     namespace: tuple = value["namespace"]
-    print('yerrr', namespace)
+    logging.debug('Namespace: %s', namespace)
     assert namespace[0] == ctx.user.identity, "Not authorized"
