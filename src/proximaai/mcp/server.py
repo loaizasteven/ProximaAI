@@ -19,7 +19,7 @@ async def lifespan(app: FastAPI):
 
 class SupabaseAuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        print("What the Helly")
+        logging.debug("What the Helly")
         auth_header = request.headers.get("x-api-key")
         if not auth_header:
             return JSONResponse({"detail": "Missing API key"}, status_code=401)
