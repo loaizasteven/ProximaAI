@@ -1,8 +1,6 @@
-from click import Option
 from pydantic import BaseModel, model_validator
 from typing import Optional, Any
 import json
-import io
 import os
 
 from proximaai.mcp.mcp_client import MCPCommunication
