@@ -18,6 +18,7 @@ class MCPCommunication(BaseModel):
        "Connection": "keep-alive"
         }
     mcp_server_token:Optional[str] = None 
+    jwt: Optional[str] = None 
     model_config= {"arbitrary_types_allowed": True}
 
     def model_post_init(self, context: Any, /) -> None:
@@ -51,10 +52,13 @@ class MCPCommunication(BaseModel):
                 self.headers['mcp-session-id'] = self.mcp_server_token or ""
 
     async def _method_wrapper(self, data: Optional[dict[str, Any]] = None, timeout: Optional[Union[int, float]] = None):
+        headers = self.headers.copy()
+        if self.jwt:
+            headers["x-api-key"] = f"Bearer {self.jwt}"
         if self.client:
                 response = await self.client.post(
                     url=self.mcp_server_url, 
-                    headers=self.headers, 
+                    headers=headers, 
                     json=data, 
                     follow_redirects=True,
                     timeout=timeout
