@@ -36,7 +36,7 @@ async def is_valid_key(auth_header: Any,):
         if data:
             user = data.user
             return user.aud=="authenticate", user.id
-    except BaseException as e:
+    except Exception as e:
         raise Auth.exceptions.HTTPException(
             status_code=401,
             detail="Invalid API key"
