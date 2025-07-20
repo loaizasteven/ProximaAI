@@ -1,6 +1,7 @@
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import HumanMessage
 from langgraph.types import Send
+from langchain_core.runnables import RunnableConfig
 from langgraph.graph import StateGraph, END, START
 
 import json
@@ -67,7 +68,7 @@ async def create_orchestrator_agent():
     async with AsyncPostgresStore.from_conn_string(os.getenv("DB_URI", "")) as store:
         await store.setup()
         
-        async def resume_parse(state: OrchestratorState) -> dict:
+        async def resume_parse(state: OrchestratorState, config: Any) -> dict:
             async with AsyncPostgresStore.from_conn_string(os.getenv("DB_URI", "")) as store:
                 # Set Up Store - Postgres
                 await store.setup()
@@ -75,6 +76,7 @@ async def create_orchestrator_agent():
 
                 # Pull request input
                 file_input = state.get('file_input')
+                user_config = config["configurable"].get("langgraph_auth_user")
                 node_response: dict[str, Union[List[dict[str, Any]], Any]] = {"messages": [{}]}
 
                 # Check Cache
@@ -87,7 +89,7 @@ async def create_orchestrator_agent():
                     node_response["messages"] = [{ "type": "agent", "content": memory['content'][0]['text'] }]
                 else:
                     # Parsing Agent
-                    parse_agent = ResumeParsingAgent()
+                    parse_agent = ResumeParsingAgent(jwt=user_config['jwt'])
                     file_input = state.get('file_input')
                     if file_input:
                         result = await parse_agent.invoke(**file_input)

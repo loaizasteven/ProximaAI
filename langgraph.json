@@ -9,5 +9,8 @@
         "app": "./src/proximaai/mcp/server.py:app",
         "timeout": 10000
     },
-    "image_distro": "wolfi"
+    "image_distro": "wolfi",
+    "auth": {
+      "path": "./src/proximaai/auth/middleware.py:auth"
+  }
 }

@@ -145,6 +145,7 @@ const LandingPageAtomize = () => {
     apiUrl: "http://localhost:2024/",
     assistantId: "main_agent",
     messagesKey: "messages", // for chat history
+    apiKey: `Bearer ${session.access_token}`,
     onFinish: (state) => {
       const messages = state?.values?.messages;
       setLastResumeHtml(messages[messages.length - 1].content as string)
