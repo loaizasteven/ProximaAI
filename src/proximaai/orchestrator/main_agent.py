@@ -81,7 +81,12 @@ async def create_orchestrator_agent():
 
                 # Check Cache
                 import hashlib
-                _key = hashlib.sha256(file_input.get('file_data').encode('utf-8')).hexdigest()
+                file_data = file_input.get('file_data')
+                if not file_data:
+                    raise ValueError("Missing 'file_data' in input")
+
+                _key = hashlib.sha256(file_data.encode('utf-8')).hexdigest()
+
                 cache_results = await store.aget(namespace=namespace, key=f"{_key}", refresh_ttl=False)
                 if cache_results:
                     logger.info("🔍 RESUME PARSE CACHE HIT")
@@ -587,7 +592,12 @@ if __name__ == "__main__":
             "agent_results": {},
             "final_response": "",
             "current_step": "start",
-            "user_id": "test1a"
+            "user_id": "test1a",
+            # Added file_input with dummy file_data
+            "file_input": {
+                "file_data": "Education: Bachelor of Science in Computer Science\nExperience: 3+ years of experience in machine learning and deep learning",
+                "file_name": "resume.txt"
+            }
         }
         
         logger.info("🚀 Starting ProximaAI Multi-Agent Orchestrator...")
@@ -616,4 +626,3 @@ if __name__ == "__main__":
         format_response(second_response)
     
     asyncio.run(main())
-    
