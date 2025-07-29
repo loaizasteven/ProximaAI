@@ -7,6 +7,7 @@ import type { Message } from "@langchain/langgraph-sdk";
 import {CreditBalance} from '@/components/credits/credit-balance'
 import {CreditUpdate} from '@/providers/Credits'
 import { useAuth, useSupabase } from '@/auth/Authentication';
+import SignOutButton from '@/components/SignOutButton';
 
 const galaxy = "https://images.unsplash.com/photo-1750292836196-3aafd7645c08?q=80&w=1728&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
 const sphere = "https://plus.unsplash.com/premium_photo-1752113495331-165d1b5b749a?q=80&w=3132&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
@@ -20,7 +21,10 @@ const Header = ({ refresh_key }) => {
         {/* <img src={reactLogo} alt="Logo" className="logo" /> */}
         <span className="brand">ProximaAI</span>
       </div>
-      <span ><CreditBalance refresh_key={refresh_key} /></span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+        <span ><CreditBalance refresh_key={refresh_key} /></span>
+        <SignOutButton /> {/* Place the SignOutButton here */}
+      </div>
     </header>
   );
 };
@@ -191,8 +195,12 @@ const LandingPageAtomize = () => {
     thread.submit(payload);
 
     // Update Credit Usage
-    await CreditUpdate({ authenticated: !!session, credit_usage: 1, supabase, session });
-    setRefreshCredits(prev => prev + 1); // This will trigger CreditBalance to refetch
+    if (session) { // Only update credits if a session exists
+      await CreditUpdate({ authenticated: !!session, credit_usage: 1, supabase, session });
+      setRefreshCredits(prev => prev + 1); // This will trigger CreditBalance to refetch
+    } else {
+      console.warn("Cannot update credits: User not authenticated.");
+    }
     // Reset state
     setUserQuery('');
     setJobDetails('');

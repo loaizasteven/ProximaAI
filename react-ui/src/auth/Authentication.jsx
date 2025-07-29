@@ -9,7 +9,7 @@
   // Define Const
   const supabase = createClient(
     import.meta.env.VITE_SUPABASE_URL, 
-    import.meta.env.VITE_SUPABASE_KEY
+    import.meta.env.VITE_SUPABASE_ANON_KEY
   )
   export const AuthContext = createContext(null)
   export const SupabaseContext = createContext(supabase);
@@ -46,10 +46,7 @@
     const location = useLocation();
     const navigate = useNavigate();
     const from = location.state?.from?.pathname || "/products";
-    async function signOut() {
-      // sign out from the current session only
-      const { error } = await supabase.auth.signOut({ scope: 'local' })
-    }
+    
     
     useEffect(() => {
       if (session) {
@@ -58,12 +55,18 @@
     }, [session, from, navigate]);
   
     if (!session) {
-      return <Auth supabaseClient={supabase} appearance={{ theme: ThemeSupa }} />;
+      return (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
+          <div style={{ width: '100%', maxWidth: '400px', padding: '20px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)', backgroundColor: 'white' }}>
+            <Auth supabaseClient={supabase} appearance={{ theme: ThemeSupa }} />
+          </div>
+        </div>
+      );
     }
     return (
-      <div>
-        Logged in!
-        <button onClick={signOut}>log out</button>
-      </div>
-    );
+    <div style={{ textAlign: 'center', marginTop: '50px' }}>
+      <h2>You are already logged in!</h2>
+      <p>Redirecting to your dashboard...</p>
+    </div>
+  );
   }
